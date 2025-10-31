@@ -1,13 +1,11 @@
-
 import React from 'react';
 import AppNavigator from './src/navigation/AppNavigator';
+import { AuthProvider } from './src/context/AuthContext.jsx';
 
-/**
- * @function App
- * @description Componente raiz do aplicativo React Native.
- * Ele renderiza o AppNavigator, que gerencia as pilhas de navegação de autenticação e do aplicativo principal.
- */
 export default function App() {
-  return <AppNavigator />;
+  return (
+    <AuthProvider>
+      <AppNavigator />
+    </AuthProvider>
+  );
 }
-

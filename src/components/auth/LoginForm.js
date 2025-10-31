@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { authApi } from '../../lib/auth';
 // Importe um ícone de dado para React Native, por exemplo, de '@expo/vector-icons'
 // import { MaterialCommunityIcons } from '@expo/vector-icons'; 
 
@@ -17,19 +18,24 @@ export default function LoginForm() {
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
 
   const handleSubmit = async () => {
     setError('');
-    // Lógica de autenticação removida conforme solicitado (apenas frontend)
-    // Aqui você integraria a chamada à API de backend
-    // Por enquanto, apenas simula um login bem-sucedido e navega
+    setLoading(true);
+    
+    if (!identifier || !password) {
+      return setError('Preencha email e senha');
+    }
 
-    if (identifier === 'test@example.com' && password === 'password') {
-      console.log('Login bem-sucedido!');
-      navigation.navigate('profile'); // Navega para a tela Home após o login
-    } else {
-      setError('Credenciais inválidas. Tente novamente.');
+    try {
+      await authApi.signInEmail(identifier, password);
+      navigation.navigate('Home');
+    } catch (err) {
+      setError('Falha no login. Verifique suas credenciais.');
+    } finally {
+      setLoading(false);
     }
   };
 
