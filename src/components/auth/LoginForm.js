@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -26,14 +25,17 @@ export default function LoginForm() {
     setLoading(true);
     
     if (!identifier || !password) {
+      setLoading(false);
       return setError('Preencha email e senha');
     }
 
     try {
-      await authApi.signInEmail(identifier, password);
+      const result = await authApi.signInEmail(identifier, password);
+      console.log('signIn result:', result);
       navigation.navigate('Home');
     } catch (err) {
-      setError('Falha no login. Verifique suas credenciais.');
+      console.error('Login error:', err);
+      setError(err?.message || 'Falha no login. Verifique suas credenciais.');
     } finally {
       setLoading(false);
     }
