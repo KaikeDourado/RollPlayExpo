@@ -41,9 +41,8 @@ export default function ProfilePage() {
           throw new Error('Usuário não autenticado');
         }
 
-        //TODO: Tratar a Rota no backend para receber apenas o token e destrinchar isso lá
         const response = await axios.get(
-          'https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/users/',
+          'https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/users/token',
           {
             headers: {
               Authorization: `Bearer ${token}`
