@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../context/AuthContext.jsx';
+import { authApi } from '../lib/auth';
+import axios from 'axios';
 // Para ícones, você pode usar @expo/vector-icons, por exemplo:
 // import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -22,7 +22,6 @@ export default function ProfilePage() {
   const [characters, setCharacters] = useState([]);
 
   const navigation = useNavigation();
-  const { logout } = useAuth();
 
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   const [isEnterSessionModalOpen, setIsEnterSessionModalOpen] = useState(false);
@@ -31,38 +30,70 @@ export default function ProfilePage() {
   const [editData, setEditData] = useState(null);
 
   useEffect(() => {
-    // Simulação de carregamento de dados do usuário e campanhas
-    // Em um cenário real, você faria chamadas de API aqui
-    const simulatedFetchData = () => {
+    const fetchUserData = async () => {
       setLoading(true);
-      setTimeout(() => {
-        const dummyUser = {
-          displayName: 'Aventureiro Teste',
+      try {
+        // Pegar token do usuário atual
+        const token = await authApi.getIdToken();
+        console.log('Token recebido:', token);
+        
+        if (!token) {
+          throw new Error('Usuário não autenticado');
+        }
+
+        //TODO: Tratar a Rota no backend para receber apenas o token e destrinchar isso lá
+        const response = await axios.get(
+          'https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/users/',
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+
+        // Assumindo que a API retorna um objeto com os dados do usuário
+        const userData = {
+          displayName: response.data.displayName,
+
+          // TODO: Ajustar conforme os dados reais retornados pela API
+          // title: response.data.title,
+          // bio: response.data.bio,
+          // photoURL: response.data.photoURL,
+          // createdAt: response.data.createdAt,
+
+          // Usando dados dummy pra simular o resto por enquanto
           title: 'Mestre de RPG',
-          bio: 'Um mestre experiente em D&D 5e, sempre em busca de novas aventuras e histórias para contar.',
-          photoURL: null, // Pode ser uma URL de imagem ou null
+          bio: 'Um mestre experiente em D&D 5e',
+          photoURL: null,
           createdAt: '2023-01-15T10:00:00Z',
           charactersCount: 3,
         };
-        const dummyCampaigns = [
+
+        setUser(userData);
+        console.log('User data fetched:', userData);
+        setEditData(userData);
+        
+        // Mantendo os dados dummy para campanhas e personagens
+        setCampaigns([
           { id: '1', name: 'A Lenda de Eldoria' },
           { id: '2', name: 'As Ruínas de Thandor' },
-        ];
-        const dummyCharacters = [
+        ]);
+        
+        setCharacters([
           { id: 'c1', name: 'Gandalf, o Cinzento' },
           { id: 'c2', name: 'Legolas, o Arqueiro' },
           { id: 'c3', name: 'Gimli, o Anão' },
-        ];
+        ]);
 
-        setUser(dummyUser);
-        setEditData(dummyUser);
-        setCampaigns(dummyCampaigns);
-        setCharacters(dummyCharacters);
+      } catch (err) {
+        console.error('Erro ao buscar dados do usuário:', err);
+        setError('Não foi possível carregar os dados do usuário.');
+      } finally {
         setLoading(false);
-      }, 1500);
+      }
     };
 
-    simulatedFetchData();
+    fetchUserData();
   }, []);
 
   if (loading) {
@@ -122,7 +153,7 @@ export default function ProfilePage() {
   
   const handleLogout = async () => {
     try {
-      await logout();
+      await authApi.signOut();
       // caso queira forçar navegação para tela de login:
       // navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
     } catch (err) {

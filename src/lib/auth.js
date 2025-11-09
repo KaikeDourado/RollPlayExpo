@@ -22,6 +22,7 @@ export const authApi = {
 
     getIdToken: async () => {
         const user = auth.currentUser;
-        return user ? await user.getIdToken() : null;
+        console.log('Current user in getIdToken:', user);
+        return user ? await user.stsTokenManager.accessToken : null;
     },
 };
