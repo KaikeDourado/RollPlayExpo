@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../context/AuthContext.jsx';
 // Para ícones, você pode usar @expo/vector-icons, por exemplo:
 // import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -21,6 +22,7 @@ export default function ProfilePage() {
   const [characters, setCharacters] = useState([]);
 
   const navigation = useNavigation();
+  const { logout } = useAuth();
 
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   const [isEnterSessionModalOpen, setIsEnterSessionModalOpen] = useState(false);
@@ -117,6 +119,18 @@ export default function ProfilePage() {
     }, 1000);
   };
 
+  
+  const handleLogout = async () => {
+    try {
+      await logout();
+      // caso queira forçar navegação para tela de login:
+      // navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
+    } catch (err) {
+      Alert.alert('Erro', 'Falha ao sair. Tente novamente.');
+      console.error('Logout error:', err);
+    }
+  };
+
   const handleCreateCharacter = () => {
     // Simulação de criação de personagem
     Alert.alert('Funcionalidade', 'Criar personagem será implementado com a integração de backend.');
@@ -200,9 +214,16 @@ export default function ProfilePage() {
               </TouchableOpacity>
             </>
           ) : (
-            <TouchableOpacity style={styles.editButton} onPress={handleEditClick}>
-              <Text style={styles.buttonText}>EDITAR PERFIL</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity style={styles.editButton} onPress={handleEditClick}>
+                <Text style={styles.buttonText}>EDITAR PERFIL</Text>
+              </TouchableOpacity>
+
+              {/* Botão de Sair adicionado */}
+              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                <Text style={styles.logoutButtonText}>SAIR</Text>
+              </TouchableOpacity>
+            </>
           )}
         </View>
       </View>
@@ -526,6 +547,20 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   enterSessionButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+    logoutButton: {
+    backgroundColor: '#6c757d',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    marginLeft: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoutButtonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
