@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { authApi } from '../../lib/auth';
+import { authApi } from '../../lib/auth';
 // Importe um ícone de dado para React Native, por exemplo, de '@expo/vector-icons'
 // import { MaterialCommunityIcons } from '@expo/vector-icons'; 
 
@@ -17,6 +18,7 @@ export default function LoginForm() {
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
   const { login } = useAuth();
