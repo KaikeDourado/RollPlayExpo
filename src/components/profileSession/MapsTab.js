@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#fff',
   },
   addMapButton: {
     backgroundColor: '#3b82f6',

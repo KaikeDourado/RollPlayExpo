@@ -6,12 +6,12 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-nativ
  * @description Componente para exibir e editar a visão geral do personagem (nome, raça, classe, etc.).
  * Adaptado do projeto React original para React Native.
  * A funcionalidade de edição e salvamento é simulada, pois a lógica de backend foi removida.
- * @param {object} data - Objeto contendo os dados gerais do personagem.
- * @param {object} atributos - Objeto contendo os valores dos atributos (usado para calcular CA e Iniciativa).
+ * @param {object} data - Objeto contendo os dados gerais do personagem (name, race, characterClass, subclass, level, background, alignment, xp, inspirationHeroica, passivePerception, size, speed, initiative, ac).
+ * @param {object} atributos - Objeto contendo os valores dos atributos (REMOVIDO, pois CA/Iniciativa/Deslocamento agora vêm do JSON).
  * @param {boolean} editMode - Indica se a seção está em modo de edição.
  * @param {function} onSave - Função para salvar as alterações (simulada).
  */
-const VisaoGeralSection = ({ data, atributos, editMode, onSave }) => {
+const VisaoGeralSection = ({ data, editMode, onSave }) => {
   const handleChange = (field, value) => {
     if (editMode && onSave) {
       const updatedData = { ...data, [field]: value };
@@ -21,15 +21,12 @@ const VisaoGeralSection = ({ data, atributos, editMode, onSave }) => {
 
   const toggleInspiracao = () => {
     if (onSave) {
-      const updatedData = { ...data, inspiracao: !data.inspiracao };
+      const updatedData = { ...data, inspirationHeroica: !data.inspirationHeroica };
       onSave(updatedData);
     }
   };
 
-  const calcModificador = (valor) => {
-    return Math.floor((valor - 10) / 2);
-  };
-
+  // Função auxiliar para formatar o modificador de Iniciativa
   const formatModificador = (mod) => {
     return mod >= 0 ? `+${mod}` : `${mod}`;
   };
@@ -47,9 +44,9 @@ const VisaoGeralSection = ({ data, atributos, editMode, onSave }) => {
           <View style={styles.infoGroup}>
             <Text style={styles.label}>Nome</Text>
             {editMode ? (
-              <TextInput style={styles.input} value={data.nome} onChangeText={(text) => handleChange('nome', text)} />
+              <TextInput style={styles.input} value={data.name} onChangeText={(text) => handleChange('name', text)} />
             ) : (
-              <Text style={styles.infoValue}>{data.nome}</Text>
+              <Text style={styles.infoValue}>{data.name}</Text>
             )}
           </View>
 
@@ -57,9 +54,9 @@ const VisaoGeralSection = ({ data, atributos, editMode, onSave }) => {
           <View style={styles.infoGroup}>
             <Text style={styles.label}>Raça</Text>
             {editMode ? (
-              <TextInput style={styles.input} value={data.raca} onChangeText={(text) => handleChange('raca', text)} />
+              <TextInput style={styles.input} value={data.race} onChangeText={(text) => handleChange('race', text)} />
             ) : (
-              <Text style={styles.infoValue}>{data.raca}</Text>
+              <Text style={styles.infoValue}>{data.race}</Text>
             )}
           </View>
 
@@ -67,9 +64,9 @@ const VisaoGeralSection = ({ data, atributos, editMode, onSave }) => {
           <View style={styles.infoGroup}>
             <Text style={styles.label}>Classe</Text>
             {editMode ? (
-              <TextInput style={styles.input} value={data.classe} onChangeText={(text) => handleChange('classe', text)} />
+              <TextInput style={styles.input} value={data.characterClass} onChangeText={(text) => handleChange('characterClass', text)} />
             ) : (
-              <Text style={styles.infoValue}>{data.classe}</Text>
+              <Text style={styles.infoValue}>{data.characterClass} ({data.subclass})</Text>
             )}
           </View>
 
@@ -77,9 +74,9 @@ const VisaoGeralSection = ({ data, atributos, editMode, onSave }) => {
           <View style={styles.infoGroup}>
             <Text style={styles.label}>Nível</Text>
             {editMode ? (
-              <TextInput style={styles.input} keyboardType="numeric" value={String(data.nivel)} onChangeText={(text) => handleChange('nivel', text)} />
+              <TextInput style={styles.input} keyboardType="numeric" value={String(data.level)} onChangeText={(text) => handleChange('level', text)} />
             ) : (
-              <Text style={styles.infoValue}>{data.nivel}</Text>
+              <Text style={styles.infoValue}>{data.level}</Text>
             )}
           </View>
 
@@ -87,9 +84,9 @@ const VisaoGeralSection = ({ data, atributos, editMode, onSave }) => {
           <View style={styles.infoGroup}>
             <Text style={styles.label}>Alinhamento</Text>
             {editMode ? (
-              <TextInput style={styles.input} value={data.alinhamento} onChangeText={(text) => handleChange('alinhamento', text)} />
+              <TextInput style={styles.input} value={data.alignment} onChangeText={(text) => handleChange('alignment', text)} />
             ) : (
-              <Text style={styles.infoValue}>{data.alinhamento}</Text>
+              <Text style={styles.infoValue}>{data.alignment}</Text>
             )}
           </View>
 
@@ -97,9 +94,9 @@ const VisaoGeralSection = ({ data, atributos, editMode, onSave }) => {
           <View style={styles.infoGroup}>
             <Text style={styles.label}>Experiência</Text>
             {editMode ? (
-              <TextInput style={styles.input} keyboardType="numeric" value={String(data.experiencia)} onChangeText={(text) => handleChange('experiencia', text)} />
+              <TextInput style={styles.input} keyboardType="numeric" value={String(data.xp)} onChangeText={(text) => handleChange('xp', text)} />
             ) : (
-              <Text style={styles.infoValue}>{data.experiencia}</Text>
+              <Text style={styles.infoValue}>{data.xp}</Text>
             )}
           </View>
 
@@ -107,9 +104,9 @@ const VisaoGeralSection = ({ data, atributos, editMode, onSave }) => {
           <View style={styles.infoGroup}>
             <Text style={styles.label}>Antecedente</Text>
             {editMode ? (
-              <TextInput style={styles.input} value={data.antecedente} onChangeText={(text) => handleChange('antecedente', text)} />
+              <TextInput style={styles.input} value={data.background} onChangeText={(text) => handleChange('background', text)} />
             ) : (
-              <Text style={styles.infoValue}>{data.antecedente}</Text>
+              <Text style={styles.infoValue}>{data.background}</Text>
             )}
           </View>
         </View>
@@ -118,28 +115,28 @@ const VisaoGeralSection = ({ data, atributos, editMode, onSave }) => {
         <View style={styles.inspiracaoContainer}>
           <Text style={styles.label}>Inspiração</Text>
           <TouchableOpacity
-            style={[styles.inspiracaoButton, data.inspiracao && styles.inspiradoButton]}
+            style={[styles.inspiracaoButton, data.inspirationHeroica && styles.inspiradoButton]}
             onPress={toggleInspiracao}
             disabled={!editMode} // Desabilita se não estiver em modo de edição
           >
-            {data.inspiracao && <Text style={styles.inspiracaoIcon}>☀️</Text>}
+            {data.inspirationHeroica && <Text style={styles.inspiracaoIcon}>☀️</Text>}
           </TouchableOpacity>
         </View>
 
         <View style={styles.atributosDerivados}>
           <View style={styles.derivadoCard}>
             <Text style={styles.derivadoLabel}>Classe de Armadura</Text>
-            <Text style={styles.derivadoValor}>{10 + calcModificador(atributos.destreza)}</Text>
+            <Text style={styles.derivadoValor}>{data.ac.value}</Text>
           </View>
 
           <View style={styles.derivadoCard}>
             <Text style={styles.derivadoLabel}>Iniciativa</Text>
-            <Text style={styles.derivadoValor}>{formatModificador(calcModificador(atributos.destreza))}</Text>
+            <Text style={styles.derivadoValor}>{data.initiative >= 0 ? `+${data.initiative}` : data.initiative}</Text>
           </View>
 
           <View style={styles.derivadoCard}>
             <Text style={styles.derivadoLabel}>Deslocamento</Text>
-            <Text style={styles.derivadoValor}>9m</Text>
+            <Text style={styles.derivadoValor}>{data.speed.walk}m</Text>
           </View>
         </View>
       </View>

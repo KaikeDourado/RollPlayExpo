@@ -7,33 +7,30 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView 
  * @description Componente para exibir e gerenciar ataques e magias do personagem.
  * Adaptado do projeto React original para React Native.
  * A funcionalidade de adição/remoção é simulada, pois a lógica de backend foi removida.
- * @param {Array} ataques - Lista de ataques do personagem.
- * @param {Array} magias - Lista de magias do personagem (não implementado neste exemplo).
+ * @param {Array} weapons - Lista de armas/ataques do personagem.
+ * @param {object} spellcasting - Objeto contendo os dados de conjuração e magias.
  * @param {boolean} editMode - Indica se a seção está em modo de edição.
  * @param {function} onSave - Função para salvar as alterações (simulada).
  */
-const AtaquesMagiasSection = ({ ataques, magias, editMode, onSave }) => {
+const AtaquesMagiasSection = ({ weapons, spellcasting, editMode, onSave }) => {
   const [activeTab, setActiveTab] = useState("ataques");
-  const [novoAtaque, setNovoAtaque] = useState({ nome: "", bonus: "", dano: "", tipo: "" });
 
-  const handleAddAtaque = () => {
-    if (novoAtaque.nome && novoAtaque.bonus && novoAtaque.dano && novoAtaque.tipo) {
-      const updatedAtaques = [...ataques, novoAtaque];
-      // Em um cenário real, você chamaria uma API para salvar
-      Alert.alert("Sucesso", "Ataque adicionado (simulado).");
-      setNovoAtaque({ nome: "", bonus: "", dano: "", tipo: "" });
-    } else {
-      Alert.alert("Erro", "Preencha todos os campos para adicionar um ataque.");
+  // Funções de manipulação de dados (adição/remoção) removidas/simplificadas
+  // para focar na exibição dos dados do JSON.
+
+  const handleRemoveWeapon = (index) => {
+    if (editMode && onSave) {
+      const updatedWeapons = weapons.filter((_, i) => i !== index);
+      onSave({ weapons: updatedWeapons }); // Assumindo que onSave espera um objeto para atualizar a seção
     }
   };
 
-  const handleRemoveAtaque = (index) => {
-    // Em um cenário real, você faria uma chamada de API para remover
-    Alert.alert("Sucesso", "Ataque removido (simulado).");
-  };
-
-  const handleAtaqueChange = (name, value) => {
-    setNovoAtaque({ ...novoAtaque, [name]: value });
+  // Função para lidar com a edição de campos de magias (ex: spellcastingAbility)
+  const handleSpellcastingChange = (field, value) => {
+    if (editMode && onSave) {
+      const updatedSpellcasting = { ...spellcasting, [field]: value };
+      onSave({ spellcasting: updatedSpellcasting });
+    }
   };
 
   return (
@@ -60,21 +57,23 @@ const AtaquesMagiasSection = ({ ataques, magias, editMode, onSave }) => {
 
       {activeTab === "ataques" && (
         <View style={styles.ataquesContent}>
-          {ataques.length > 0 ? (
+          {weapons.length > 0 ? (
             <View style={styles.table}>
               <View style={styles.tableHeader}>
                 <Text style={styles.tableHeaderText}>Nome</Text>
-                <Text style={styles.tableHeaderText}>Bônus</Text>
+                <Text style={styles.tableHeaderText}>Bônus/CD</Text>
                 <Text style={styles.tableHeaderText}>Dano/Tipo</Text>
+                <Text style={styles.tableHeaderText}>Notas</Text>
                 {editMode && <Text style={styles.tableHeaderText}>Ações</Text>}
               </View>
-              {ataques.map((ataque, index) => (
+              {weapons.map((weapon, index) => (
                 <View key={index} style={styles.tableRow}>
-                  <Text style={styles.tableCell}>{ataque.nome}</Text>
-                  <Text style={styles.tableCell}>{ataque.bonus}</Text>
-                  <Text style={styles.tableCell}>{`${ataque.dano} ${ataque.tipo}`}</Text>
+                  <Text style={styles.tableCell}>{weapon.name}</Text>
+                  <Text style={styles.tableCell}>{weapon.bonusOrDC}</Text>
+                  <Text style={styles.tableCell}>{weapon.damageType}</Text>
+                  <Text style={styles.tableCell}>{weapon.notes}</Text>
                   {editMode && (
-                    <TouchableOpacity style={styles.removeButton} onPress={() => handleRemoveAtaque(index)}>
+                    <TouchableOpacity style={styles.removeButton} onPress={() => handleRemoveWeapon(index)}>
                       <Text style={styles.removeButtonText}>✕</Text>
                     </TouchableOpacity>
                   )}
@@ -82,65 +81,55 @@ const AtaquesMagiasSection = ({ ataques, magias, editMode, onSave }) => {
               ))}
             </View>
           ) : (
-            <Text style={styles.noItemsText}>Nenhum ataque cadastrado.</Text>
+            <Text style={styles.noItemsText}>Nenhuma arma/ataque cadastrado.</Text>
           )}
 
-          {editMode && (
-            <View style={styles.addForm}>
-              <Text style={styles.addFormTitle}>Adicionar Ataque</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Nome"
-                value={novoAtaque.nome}
-                onChangeText={(text) => handleAtaqueChange("nome", text)}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Bônus (ex: +5)"
-                value={novoAtaque.bonus}
-                onChangeText={(text) => handleAtaqueChange("bonus", text)}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Dano (ex: 1d8+3)"
-                value={novoAtaque.dano}
-                onChangeText={(text) => handleAtaqueChange("dano", text)}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Tipo (ex: Cortante)"
-                value={novoAtaque.tipo}
-                onChangeText={(text) => handleAtaqueChange("tipo", text)}
-              />
-              <TouchableOpacity style={styles.addButton} onPress={handleAddAtaque}>
-                <Text style={styles.addButtonText}>Adicionar</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+          {/* O formulário de adição de ataque foi removido para simplificar a adaptação ao JSON. */}
+          {/* Se necessário, pode ser reintroduzido usando a estrutura do JSON. */}
         </View>
       )}
 
       {activeTab === "magias" && (
         <View style={styles.magiasContent}>
-          <View style={styles.magiasInfo}>
-            <View style={styles.magiaStat}>
-              <Text style={styles.magiaStatLabel}>Habilidade de Conjuração</Text>
-              <Text style={styles.magiaStatValue}>-</Text>
-            </View>
-            <View style={styles.magiaStat}>
-              <Text style={styles.magiaStatLabel}>CD para Resistir</Text>
-              <Text style={styles.magiaStatValue}>-</Text>
-            </View>
-            <View style={styles.magiaStat}>
-              <Text style={styles.magiaStatLabel}>Bônus de Ataque</Text>
-              <Text style={styles.magiaStatValue}>-</Text>
-            </View>
-          </View>
+          {spellcasting.hasSpellcasting ? (
+            <View>
+              <View style={styles.magiasInfo}>
+                <View style={styles.magiaStat}>
+                  <Text style={styles.magiaStatLabel}>Habilidade de Conjuração</Text>
+                  <Text style={styles.magiaStatValue}>{spellcasting.spellcastingAbility || 'N/A'}</Text>
+                </View>
+                <View style={styles.magiaStat}>
+                  <Text style={styles.magiaStatLabel}>CD para Resistir</Text>
+                  <Text style={styles.magiaStatValue}>{spellcasting.spellSaveDC || 'N/A'}</Text>
+                </View>
+                <View style={styles.magiaStat}>
+                  <Text style={styles.magiaStatLabel}>Bônus de Ataque</Text>
+                  <Text style={styles.magiaStatValue}>{spellcasting.spellAttackBonus || 'N/A'}</Text>
+                </View>
+              </View>
 
-          <View style={styles.magiasEmpty}>
-            <Text style={styles.noItemsText}>Este personagem não possui magias.</Text>
-            {editMode && <TouchableOpacity style={styles.addMagiaButton} onPress={() => Alert.alert("Funcionalidade", "Adicionar Magias será implementado com a integração de backend.")}><Text style={styles.addMagiaButtonText}>Adicionar Magias</Text></TouchableOpacity>}
-          </View>
+              {/* Seção de Magias por Nível (Simplificada para exibição) */}
+              <Text style={styles.magiasTitle}>Magias Conhecidas/Preparadas</Text>
+              {Object.entries(spellcasting.spellsByLevel).map(([level, data]) => (
+                data.spells.length > 0 && (
+                  <View key={level} style={styles.spellLevelContainer}>
+                    <Text style={styles.spellLevelTitle}>Nível {level} ({data.slots.expended}/{data.slots.total} slots)</Text>
+                    <Text style={styles.spellList}>{data.spells.map(s => s.name).join(', ')}</Text>
+                  </View>
+                )
+              ))}
+              
+              {/* Notas de Magia */}
+              <Text style={styles.magiasTitle}>Notas de Conjuração</Text>
+              <Text style={styles.spellNotes}>{spellcasting.spellNotes || 'Nenhuma nota.'}</Text>
+
+            </View>
+          ) : (
+            <View style={styles.magiasEmpty}>
+              <Text style={styles.noItemsText}>Este personagem não possui habilidades de conjuração.</Text>
+              {editMode && <TouchableOpacity style={styles.addMagiaButton} onPress={() => handleSpellcastingChange('hasSpellcasting', true)}><Text style={styles.addMagiaButtonText}>Habilitar Conjuração</Text></TouchableOpacity>}
+            </View>
+          )}
         </View>
       )}
     </View>
@@ -211,28 +200,29 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
   },
-  tableHeaderText: {
-    flex: 1,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: '#333',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  tableCell: {
-    flex: 1,
-    textAlign: 'center',
-    color: '#555',
-  },
-  removeButton: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+	  tableHeaderText: {
+	    flex: 1,
+	    fontWeight: 'bold',
+	    textAlign: 'center',
+	    color: '#333',
+	  },
+	  tableRow: {
+	    flexDirection: 'row',
+	    paddingVertical: 8,
+	    borderBottomWidth: 1,
+	    borderBottomColor: '#eee',
+	  },
+	  tableCell: {
+	    flex: 1,
+	    textAlign: 'center',
+	    color: '#555',
+	    paddingHorizontal: 5,
+	  },
+	  removeButton: {
+	    width: 50, // Tamanho fixo para o botão de remover
+	    alignItems: 'center',
+	    justifyContent: 'center',
+	  },
   removeButtonText: {
     color: 'red',
     fontWeight: 'bold',
@@ -243,42 +233,42 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginTop: 10,
   },
-  addForm: {
-    marginTop: 20,
-    padding: 10,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  addFormTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#333',
-  },
-  input: {
-    height: 40,
-    borderColor: '#ddd',
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 10,
-    marginBottom: 10,
-    backgroundColor: '#fff',
-  },
-  addButton: {
-    backgroundColor: '#28a745',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  addButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  magiasContent: {
-    // Estilos para o conteúdo de magias
-  },
+	  // Estilos de formulário de adição removidos, pois a funcionalidade foi simplificada.
+	  magiasContent: {
+	    // Estilos para o conteúdo de magias
+	  },
+	  magiasTitle: {
+	    fontSize: 16,
+	    fontWeight: 'bold',
+	    color: '#333',
+	    marginTop: 15,
+	    marginBottom: 5,
+	    borderBottomWidth: 1,
+	    borderBottomColor: '#eee',
+	    paddingBottom: 5,
+	  },
+	  spellLevelContainer: {
+	    marginBottom: 10,
+	    padding: 5,
+	    backgroundColor: '#f9f9f9',
+	    borderRadius: 5,
+	  },
+	  spellLevelTitle: {
+	    fontWeight: 'bold',
+	    color: '#3b82f6',
+	    marginBottom: 3,
+	  },
+	  spellList: {
+	    fontSize: 14,
+	    color: '#555',
+	  },
+	  spellNotes: {
+	    fontSize: 14,
+	    color: '#555',
+	    padding: 10,
+	    backgroundColor: '#f9f9f9',
+	    borderRadius: 5,
+	  },
   magiasInfo: {
     flexDirection: 'row',
     justifyContent: 'space-around',

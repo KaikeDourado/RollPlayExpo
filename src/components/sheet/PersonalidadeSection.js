@@ -6,14 +6,14 @@ import { View, Text, StyleSheet, TextInput } from 'react-native';
  * @description Componente para exibir e editar traços de personalidade, ideais, ligações, defeitos e história do personagem.
  * Adaptado do projeto React original para React Native.
  * A funcionalidade de edição e salvamento é simulada, pois a lógica de backend foi removida.
- * @param {object} personalidade - Objeto contendo os dados de personalidade do personagem.
+ * @param {object} data - Objeto contendo os dados de personalidade do personagem (appearance, backstoryPersonality, ideals, bonds, flaws).
  * @param {boolean} editMode - Indica se a seção está em modo de edição.
  * @param {function} onSave - Função para salvar as alterações (simulada).
  */
-const PersonalidadeSection = ({ personalidade, editMode, onSave }) => {
+const PersonalidadeSection = ({ data, editMode, onSave }) => {
   const handleChange = (field, value) => {
     if (editMode && onSave) {
-      onSave({ ...personalidade, [field]: value });
+      onSave({ ...data, [field]: value });
     }
   };
 
@@ -21,14 +21,14 @@ const PersonalidadeSection = ({ personalidade, editMode, onSave }) => {
     editMode ? (
       <TextInput
         style={styles.personalidadeTextarea}
-        value={personalidade[field] || ''}
+        value={data[field] || ''}
         onChangeText={(text) => handleChange(field, text)}
         placeholder={placeholder}
         multiline
         textAlignVertical="top"
       />
     ) : (
-      <Text style={styles.personalidadeText}>{personalidade[field] || `Nenhum ${placeholder.toLowerCase().replace('adicione os ', '').replace(' do seu personagem...', '')}.`}</Text>
+      <Text style={styles.personalidadeText}>{data[field] || `Nenhum ${placeholder.toLowerCase().replace('adicione os ', '').replace(' do seu personagem...', '')}.`}</Text>
     )
   );
 
@@ -40,36 +40,36 @@ const PersonalidadeSection = ({ personalidade, editMode, onSave }) => {
       </View>
 
       <View style={styles.personalidadeContent}>
-        {/* Bloco: Traços de Personalidade */}
-        <View style={styles.personalidadeBlock}>
-          <Text style={styles.personalidadeBlockTitle}>Traços de Personalidade</Text>
-          {renderEditableText('tracos', 'Adicione os traços de personalidade do seu personagem...')}
-        </View>
+	        {/* Bloco: Aparência */}
+	        <View style={styles.personalidadeBlock}>
+	          <Text style={styles.personalidadeBlockTitle}>Aparência</Text>
+	          {renderEditableText('appearance', 'Adicione a aparência do seu personagem...')}
+	        </View>
 
-        {/* Bloco: Ideais */}
-        <View style={styles.personalidadeBlock}>
-          <Text style={styles.personalidadeBlockTitle}>Ideais</Text>
-          {renderEditableText('ideais', 'Adicione os ideais do seu personagem...')}
-        </View>
+	        {/* Bloco: Ideais */}
+	        <View style={styles.personalidadeBlock}>
+	          <Text style={styles.personalidadeBlockTitle}>Ideais</Text>
+	          {renderEditableText('ideals', 'Adicione os ideais do seu personagem...')}
+	        </View>
 
-        {/* Bloco: Ligações */}
-        <View style={styles.personalidadeBlock}>
-          <Text style={styles.personalidadeBlockTitle}>Ligações</Text>
-          {renderEditableText('ligacoes', 'Adicione as ligações do seu personagem...')}
-        </View>
+	        {/* Bloco: Ligações */}
+	        <View style={styles.personalidadeBlock}>
+	          <Text style={styles.personalidadeBlockTitle}>Ligações</Text>
+	          {renderEditableText('bonds', 'Adicione as ligações do seu personagem...')}
+	        </View>
 
-        {/* Bloco: Defeitos */}
-        <View style={styles.personalidadeBlock}>
-          <Text style={styles.personalidadeBlockTitle}>Defeitos</Text>
-          {renderEditableText('defeitos', 'Adicione os defeitos do seu personagem...')}
-        </View>
+	        {/* Bloco: Defeitos */}
+	        <View style={styles.personalidadeBlock}>
+	          <Text style={styles.personalidadeBlockTitle}>Defeitos</Text>
+	          {renderEditableText('flaws', 'Adicione os defeitos do seu personagem...')}
+	        </View>
       </View>
 
-      {/* Bloco: História */}
-      <View style={[styles.personalidadeBlock, styles.historiaBlock]}>
-        <Text style={styles.personalidadeBlockTitle}>História</Text>
-        {renderEditableText('historia', 'Adicione a história do seu personagem...')}
-      </View>
+	      {/* Bloco: História/Personalidade */}
+	      <View style={[styles.personalidadeBlock, styles.historiaBlock]}>
+	        <Text style={styles.personalidadeBlockTitle}>História e Personalidade</Text>
+	        {renderEditableText('backstoryPersonality', 'Adicione a história e traços de personalidade do seu personagem...')}
+	      </View>
     </View>
   );
 };

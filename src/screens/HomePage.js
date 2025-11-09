@@ -23,14 +23,6 @@ export default function HomePage() {
             ROLL & PLAY É UMA PLATAFORMA GRATUITA PARA JOGADORES DE RPG DE MESA.
             CRIE PERSONAGENS, ORGANIZE SESSÕES E ROLE DADOS - TUDO EM UM SÓ LUGAR.
           </Text>
-          <View style={styles.heroButtons}>
-            <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.primaryButtonText}>Começar agora</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.secondaryButtonText}>Fazer Login</Text>
-            </TouchableOpacity>
-          </View>
         </View>
         <Image source={require("../../assets/wizard_image.jpg")} style={styles.heroImage} />
       </View>
@@ -53,41 +45,6 @@ export default function HomePage() {
         </View>
       </View>
 
-      <View style={styles.aboutSection}>
-        <View style={styles.aboutContent}>
-          <Text style={styles.aboutTitle}>SOBRE O ROLL & PLAY</Text>
-          <Text style={styles.aboutParagraph}>
-            O Roll & Play é muito mais do que uma plataforma para gerenciar campanhas de RPG — é um ecossistema completo, gratuito e acessível, pensado para atender tanto jogadores apaixonados quanto educadores inovadores. Nascemos do desejo de unir a imaginação dos mundos fantásticos com a realidade das salas de aula, promovendo experiências significativas e colaborativas.
-          </Text>
-          <Text style={styles.aboutParagraph}>
-            Nossa missão é democratizar o acesso ao RPG de mesa, transformando-o em uma ferramenta poderosa para desenvolvimento de habilidades sociais, criativas e cognitivas. Com uma interface intuitiva e funcionalidades robustas, o Roll & Play facilita a criação de personagens, o agendamento de sessões, a comunicação entre participantes e muito mais — tudo em um só lugar.
-          </Text>
-          <Text style={styles.aboutParagraph}>
-            Acreditamos no poder da narrativa para educar, engajar e conectar pessoas. Por isso, além de atender mestres e jogadores, nos dedicamos também a apoiar professores e instituições de ensino, oferecendo recursos que permitem transformar aulas em verdadeiras aventuras de aprendizado. No Roll & Play, jogamos para aprender e aprendemos jogando.
-          </Text>
-        </View>
-
-        <View style={styles.aboutFeatures}>
-          <View style={styles.aboutBadge}>
-            <Text style={styles.aboutBadgeText}>100% Gratuito</Text>
-          </View>
-          <Text style={styles.aboutTitle}>SOBRE O ROLL & PLAY</Text>
-          <View style={styles.aboutList}>
-            <AboutListItem text="PLATAFORMA TOTALMENTE GRATUITA, SEM RECURSOS PREMIUM ESCONDIDOS" />
-            <AboutListItem text="SUPORTE PARA MÚLTIPLOS SISTEMAS DE RPG, INCLUSIVE EDUCACIONAIS" />
-            <AboutListItem text="INTERFACE INTUITIVA E FÁCIL DE USAR" />
-            <AboutListItem text="COMUNIDADE ATIVA E EM CRESCIMENTO" />
-            <AboutListItem text="ATUALIZAÇÕES REGULARES COM NOVAS FUNCIONALIDADES" />
-            <AboutListItem text="FERRAMENTAS IDEAIS PARA USO EM AMBIENTES ESCOLARES E UNIVERSITÁRIOS" />
-            <AboutListItem text="AUXILIA NO DESENVOLVIMENTO DE HABILIDADES SOCIOEMOCIONAIS E COGNITIVAS" />
-            <AboutListItem text="ESTIMULA LEITURA, ESCRITA, ARGUMENTAÇÃO E PENSAMENTO ESTRATÉGICO EM SALA DE AULA" />
-          </View>
-          <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.primaryButtonText}>Junte-se a nós</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
       <View style={styles.faqSection}>
         <Text style={styles.faqTitle}>PERGUNTAS FREQUENTES</Text>
         <View style={styles.faqGrid}>
@@ -97,21 +54,6 @@ export default function HomePage() {
           <FAQItem question="COMO FAÇO PARA CONVIDAR MEUS AMIGOS PARA UMA SESSÃO?" answer="Ao criar uma sessão, você receberá um link de convite que pode ser compartilhado com seus amigos. Eles precisarão ter uma conta no roll & play para participar." />
           <FAQItem question="PRECISO CRIAR UMA CONTA PARA USAR?" answer="Sim, é necessário criar uma conta para acessar as funcionalidades do roll & play. O registro é rápido e gratuito, e só pedimos informações essenciais." />
           <FAQItem question="VOCÊS TÊM PLANOS PARA ADICIONAR NOVAS FUNCIONALIDADES?" answer="Absolutamente! Estamos constantemente trabalhando em novas funcionalidades e melhorias com base no feedback da comunidade. Fique atento às atualizações!" />
-        </View>
-      </View>
-
-      <View style={styles.ctaSection}>
-        <Text style={styles.ctaTitle}>PRONTO PARA COMEÇAR SUA AVENTURA?</Text>
-        <Text style={styles.ctaDescription}>
-          JUNTE-SE A CENTENAS DE JOGADORES DE RPG QUE JÁ ESTÃO USANDO O ROLL & PLAY PARA SUAS CAMPANHAS.
-        </Text>
-        <View style={styles.ctaButtons}>
-          <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.primaryButtonText}>Criar conta gratuita</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('About')}>
-            <Text style={styles.secondaryButtonText}>Saiba mais</Text>
-          </TouchableOpacity>
         </View>
       </View>
     </ScrollView>
@@ -129,13 +71,6 @@ const FeatureCard = ({ icon, title, description }) => (
   </View>
 );
 
-const AboutListItem = ({ text }) => (
-  <View style={aboutListItemStyles.item}>
-    {/* <Feather name="check" size={16} color="#fff" /> */}
-    <Text style={aboutListItemStyles.text}>{text}</Text>
-  </View>
-);
-
 const FAQItem = ({ question, answer }) => (
   <View style={faqItemStyles.item}>
     <Text style={faqItemStyles.question}>{question}</Text>
@@ -149,7 +84,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f2f5',
   },
   heroSection: {
-    backgroundColor: '#1a202c',
+    backgroundColor: '#020717',
     paddingVertical: 50,
     alignItems: 'center',
   },
@@ -172,57 +107,29 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 30,
   },
-  heroButtons: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 20,
-  },
-  primaryButton: {
-    backgroundColor: '#3b82f6',
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    borderRadius: 8,
-  },
-  primaryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  secondaryButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#3b82f6',
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    borderRadius: 8,
-  },
-  secondaryButtonText: {
-    color: '#3b82f6',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   heroImage: {
     width: '100%',
     height: 200,
     resizeMode: 'contain',
-    marginTop: 30,
+    marginTop: 10,
   },
 
   featuresSection: {
     paddingVertical: 40,
     paddingHorizontal: 20,
     alignItems: 'center',
+    backgroundColor: '#131525'
   },
   featuresTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#ffffffff',
     textAlign: 'center',
     marginBottom: 15,
   },
   featuresSubtitle: {
     fontSize: 16,
-    color: '#666',
+    color: '#ffffffff',
     textAlign: 'center',
     marginBottom: 30,
     maxWidth: 700,
@@ -233,94 +140,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     width: '100%',
   },
-
-  aboutSection: {
-    backgroundColor: '#1a202c',
-    paddingVertical: 50,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-  },
-  aboutContent: {
-    width: '90%',
-    maxWidth: 800,
-    marginBottom: 40,
-  },
-  aboutTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  aboutParagraph: {
-    fontSize: 16,
-    color: '#ccc',
-    lineHeight: 24,
-    marginBottom: 15,
-  },
-  aboutFeatures: {
-    width: '90%',
-    maxWidth: 800,
-    alignItems: 'center',
-  },
-  aboutBadge: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    marginBottom: 20,
-  },
-  aboutBadgeText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  aboutList: {
-    marginTop: 20,
-    width: '100%',
-  },
-
   faqSection: {
     paddingVertical: 40,
     paddingHorizontal: 20,
     alignItems: 'center',
+    backgroundColor: '#020717'
   },
   faqTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#ffffffff',
     textAlign: 'center',
     marginBottom: 30,
   },
   faqGrid: {
     width: '100%',
     maxWidth: 800,
-  },
-
-  ctaSection: {
-    backgroundColor: '#3b82f6',
-    paddingVertical: 50,
-    alignItems: 'center',
-  },
-  ctaTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 15,
-  },
-  ctaDescription: {
-    fontSize: 16,
-    color: '#fff',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 30,
-    maxWidth: 600,
-  },
-  ctaButtons: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 20,
   },
 });
 
@@ -330,7 +165,7 @@ const featureCardStyles = StyleSheet.create({
     borderRadius: 10,
     padding: 20,
     margin: 10,
-    width: '45%', // Aproximadamente metade da largura para 2 colunas em mobile
+    width: '90%',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -361,21 +196,6 @@ const featureCardStyles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
-  },
-});
-
-const aboutListItemStyles = StyleSheet.create({
-  item: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-    width: '100%',
-  },
-  text: {
-    fontSize: 14,
-    color: '#ccc',
-    marginLeft: 10,
-    flexShrink: 1,
   },
 });
 

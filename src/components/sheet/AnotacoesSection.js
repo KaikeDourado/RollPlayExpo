@@ -7,11 +7,11 @@ import { View, Text, StyleSheet, TextInput } from 'react-native';
  * @description Componente para exibir e editar anotações do personagem.
  * Adaptado do projeto React original para React Native.
  * A funcionalidade de edição e salvamento é simulada, pois a lógica de backend foi removida.
- * @param {string} anotacoes - O texto das anotações.
+ * @param {string} notes - O texto das anotações.
  * @param {boolean} editMode - Indica se a seção está em modo de edição.
  * @param {function} onSave - Função para salvar as anotações (simulada).
  */
-const AnotacoesSection = ({ anotacoes, editMode, onSave }) => {
+const AnotacoesSection = ({ notes, editMode, onSave }) => {
   // A função handleChange e onSave são mantidas como placeholders para futura integração de backend
   const handleChange = (text) => {
     if (editMode && onSave) {
@@ -27,18 +27,18 @@ const AnotacoesSection = ({ anotacoes, editMode, onSave }) => {
       </View>
 
       <View style={styles.anotacoesContent}>
-        {editMode ? (
-          <TextInput
-            style={styles.anotacoesTextarea}
-            value={anotacoes}
-            onChangeText={handleChange}
-            placeholder="Adicione anotações sobre seu personagem aqui..."
-            multiline
-            textAlignVertical="top"
-          />
-        ) : (
-          <Text style={styles.anotacoesText}>{anotacoes || 'Nenhuma anotação.'}</Text>
-        )}
+	        {editMode ? (
+	          <TextInput
+	            style={styles.anotacoesTextarea}
+	            value={notes}
+	            onChangeText={handleChange}
+	            placeholder="Adicione anotações sobre seu personagem aqui..."
+	            multiline
+	            textAlignVertical="top"
+	          />
+	        ) : (
+	          <Text style={styles.anotacoesText}>{notes || 'Nenhuma anotação.'}</Text>
+	        )}
       </View>
     </View>
   );

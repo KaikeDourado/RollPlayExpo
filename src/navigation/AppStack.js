@@ -1,8 +1,6 @@
-
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import HomePage from '../screens/HomePage';
-import ProfilePage from '../screens/ProfilePage';
+import BottomTabNavigator from '../components/navigation/BottomTabNavigator';
 import ProfileSessionPage from '../screens/ProfileSessionPage';
 import SheetPage from '../screens/SheetPage';
 
@@ -15,14 +13,21 @@ const Stack = createStackNavigator();
  */
 function AppStack() {
   return (
-    <Stack.Navigator initialRouteName="Home" screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Home" component={HomePage} />
-      <Stack.Screen name="Profile" component={ProfilePage} />
-      <Stack.Screen name="ProfileSession" component={ProfileSessionPage} />
-      <Stack.Screen name="Sheet" component={SheetPage} />
+    <Stack.Navigator initialRouteName="MainTabs" screenOptions={{ headerShown: false }}>
+      <Stack.Screen 
+        name="MainTabs" 
+        component={BottomTabNavigator} 
+      />
+      <Stack.Screen 
+        name="ProfileSession" 
+        component={ProfileSessionPage}
+      />
+      <Stack.Screen 
+        name="Sheet" 
+        component={SheetPage}
+      />
     </Stack.Navigator>
   );
 }
 
 export default AppStack;
-

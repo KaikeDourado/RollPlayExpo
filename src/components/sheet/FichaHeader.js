@@ -6,7 +6,7 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput, Alert } fro
  * @function FichaHeader
  * @description Cabeçalho da ficha de personagem, com informações básicas e controle de PV.
  * Adaptado do projeto React original para React Native.
- * @param {string} characterImage - URL da imagem do personagem.
+ * @param {string} characterImage - URL da imagem do personagem. (Não implementado no JSON)
  * @param {string} characterName - Nome do personagem.
  * @param {string} characterClass - Classe do personagem.
  * @param {number} pvAtual - Pontos de Vida atuais.
@@ -14,15 +14,19 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput, Alert } fro
  * @param {number} pvTemp - Pontos de Vida temporários.
  * @param {function} onEditToggle - Função para alternar o modo de edição.
  * @param {boolean} editMode - Indica se a ficha está em modo de edição.
- * @param {function} onHeal - Função para curar PV (simulada).
- * @param {function} onDamage - Função para causar dano (simulada).
+ * @param {function} onHeal - Função para curar PV. (A ser implementada no SheetPage)
+ * @param {function} onDamage - Função para causar dano. (A ser implementada no SheetPage)
  */
-const FichaHeader = ({ characterImage, characterName, characterClass, pvAtual, pvTotal, pvTemp, onEditToggle, editMode, onHeal, onDamage }) => {
+const FichaHeader = ({ characterImage, characterName, characterClass, pvAtual, pvTotal, pvTemp, editMode, onEditToggle, onHeal, onDamage }) => {
+  // Funções onHeal e onDamage não foram passadas pelo SheetPage, mas mantemos a estrutura para futura implementação.
+  // Por enquanto, apenas simulamos a lógica de PV no SheetPage.
+  const onHealProp = onHeal || (() => console.log('onHeal não implementado'));
+  const onDamageProp = onDamage || (() => console.log('onDamage não implementado'));
   const [pvInputValue, setPvInputValue] = useState('');
 
   const handleHeal = () => {
     if (pvInputValue) {
-      onHeal(parseInt(pvInputValue, 10));
+      onHealProp(parseInt(pvInputValue, 10));
       setPvInputValue('');
     } else {
       Alert.alert('Erro', 'Por favor, insira um valor para curar.');
@@ -31,7 +35,7 @@ const FichaHeader = ({ characterImage, characterName, characterClass, pvAtual, p
 
   const handleDamage = () => {
     if (pvInputValue) {
-      onDamage(parseInt(pvInputValue, 10));
+      onDamageProp(parseInt(pvInputValue, 10));
       setPvInputValue('');
     } else {
       Alert.alert('Erro', 'Por favor, insira um valor para causar dano.');

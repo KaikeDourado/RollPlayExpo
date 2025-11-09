@@ -217,7 +217,11 @@ export default function ProfilePage() {
         <View style={styles.campaignGrid}>
           {campaigns.length > 0 ? (
             campaigns.map((campaign) => (
-              <TouchableOpacity key={campaign.id} style={styles.campaignCard} onPress={() => Alert.alert('Campanha', `Navegar para ${campaign.name}`)}>
+              <TouchableOpacity
+                key={campaign.id}
+                style={styles.campaignCard}
+                onPress={() => navigation.navigate('ProfileSession', { campaignUid: campaign.id })}
+              >
                 <Image source={require("../../assets/default-campaign-img.png")} style={styles.campaignImage} />
                 <Text style={styles.campaignName}>{campaign.name}</Text>
               </TouchableOpacity>

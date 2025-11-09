@@ -7,52 +7,65 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView 
  * @description Componente para exibir e gerenciar o inventário do personagem.
  * Adaptado do projeto React original para React Native.
  * A funcionalidade de adição/remoção é simulada, pois a lógica de backend foi removida.
- * @param {Array} inventario - Lista de itens no inventário do personagem.
+ * @param {object} inventory - Objeto contendo o inventário (equipment, magicItemsAttuned, coins).
  * @param {boolean} editMode - Indica se a seção está em modo de edição.
  * @param {function} onSave - Função para salvar as alterações (simulada).
  */
-const InventarioSection = ({ inventario, editMode, onSave }) => {
-  const [novoItem, setNovoItem] = useState({ nome: '', quantidade: '1', peso: '0' });
+const InventarioSection = ({ inventory, editMode, onSave }) => {
+  const { equipment, magicItemsAttuned, coins } = inventory;
+  const [novoItem, setNovoItem] = useState({ name: '', qty: '1', weight: '0', notes: '' });
 
   const calcularPesoTotal = () => {
-    return inventario.reduce((total, item) => total + (parseFloat(item.peso) || 0) * (parseInt(item.quantidade) || 0), 0);
+    return equipment.reduce((total, item) => total + (parseFloat(item.weight) || 0) * (parseInt(item.qty) || 0), 0);
   };
 
   const handleAddItem = () => {
-    if (novoItem.nome) {
-      const updatedInventario = [
-        ...inventario,
-        {
-          ...novoItem,
-          quantidade: parseInt(novoItem.quantidade) || 1,
-          peso: parseFloat(novoItem.peso) || 0,
-        },
-      ];
-      // Em um cenário real, você chamaria uma API para salvar
+    if (novoItem.name) {
+      const newItem = {
+        name: novoItem.name,
+        qty: parseInt(novoItem.qty) || 1,
+        weight: parseFloat(novoItem.weight) || 0,
+        notes: novoItem.notes,
+      };
+      const updatedEquipment = [...equipment, newItem];
       Alert.alert('Sucesso', 'Item adicionado (simulado).');
-      onSave(updatedInventario);
-      setNovoItem({ nome: '', quantidade: '1', peso: '0' });
+      onSave({ ...inventory, equipment: updatedEquipment });
+      setNovoItem({ name: '', qty: '1', weight: '0', notes: '' });
     } else {
       Alert.alert('Erro', 'O nome do item não pode ser vazio.');
     }
   };
 
   const handleRemoveItem = (index) => {
-    const updatedInventario = inventario.filter((_, i) => i !== index);
-    // Em um cenário real, você faria uma chamada de API para remover
+    const updatedEquipment = equipment.filter((_, i) => i !== index);
     Alert.alert('Sucesso', 'Item removido (simulado).');
-    onSave(updatedInventario);
+    onSave({ ...inventory, equipment: updatedEquipment });
   };
 
   const handleItemChange = (name, value) => {
     setNovoItem({ ...novoItem, [name]: value });
   };
 
-  const handleQuantidadeChange = (index, newQuantidade) => {
+  const handleQuantityChange = (index, newQuantity) => {
     if (editMode && onSave) {
-      const updatedInventario = [...inventario];
-      updatedInventario[index].quantidade = parseInt(newQuantidade) || 1;
-      onSave(updatedInventario);
+      const updatedEquipment = [...equipment];
+      updatedEquipment[index].qty = parseInt(newQuantity) || 1;
+      onSave({ ...inventory, equipment: updatedEquipment });
+    }
+  };
+
+  const handleCoinChange = (coinType, value) => {
+    if (editMode && onSave) {
+      const updatedCoins = { ...coins, [coinType]: parseInt(value) || 0 };
+      onSave({ ...inventory, coins: updatedCoins });
+    }
+  };
+
+  const handleToggleAttuned = (index) => {
+    if (editMode && onSave) {
+      const updatedMagicItems = [...magicItemsAttuned];
+      updatedMagicItems[index].attuned = !updatedMagicItems[index].attuned;
+      onSave({ ...inventory, magicItemsAttuned: updatedMagicItems });
     }
   };
 
@@ -64,95 +77,134 @@ const InventarioSection = ({ inventario, editMode, onSave }) => {
       </View>
 
       <View style={styles.inventarioSummary}>
-        <View style={styles.pesoTotal}>
-          <Text>Peso Total: </Text>
-          <Text style={styles.pesoValor}>{calcularPesoTotal().toFixed(1)} kg</Text>
-        </View>
-        <View style={styles.moedas}>
-          <View style={styles.moeda}>
-            <Text style={styles.moedaIcon}>🥇</Text>
-            <Text style={styles.moedaLabel}>PO: </Text>
-            <Text style={styles.moedaValor}>75</Text>
-          </View>
-          <View style={styles.moeda}>
-            <Text style={styles.moedaIcon}>🥈</Text>
-            <Text style={styles.moedaLabel}>PP: </Text>
-            <Text style={styles.moedaValor}>32</Text>
-          </View>
-          <View style={styles.moeda}>
-            <Text style={styles.moedaIcon}>🥉</Text>
-            <Text style={styles.moedaLabel}>PC: </Text>
-            <Text style={styles.moedaValor}>15</Text>
-          </View>
-        </View>
+	      <View style={styles.pesoTotal}>
+	        <Text>Peso Total: </Text>
+	        <Text style={styles.pesoValor}>{calcularPesoTotal().toFixed(1)} kg</Text>
+	      </View>
+	      <View style={styles.moedas}>
+	        {Object.entries(coins).map(([key, value]) => (
+	          <View key={key} style={styles.moeda}>
+	            <Text style={styles.moedaLabel}>{key.toUpperCase()}: </Text>
+	            {editMode ? (
+	              <TextInput
+	                style={styles.moedaInput}
+	                keyboardType="numeric"
+	                value={String(value)}
+	                onChangeText={(text) => handleCoinChange(key, text)}
+	              />
+	            ) : (
+	              <Text style={styles.moedaValor}>{value}</Text>
+	            )}
+	          </View>
+	        ))}
+	      </View>
       </View>
 
-      <View style={styles.inventarioList}>
-        {inventario.length > 0 ? (
-          <View style={styles.table}>
-            <View style={styles.tableHeader}>
-              <Text style={styles.tableHeaderText}>Item</Text>
-              <Text style={styles.tableHeaderText}>Qtd</Text>
-              <Text style={styles.tableHeaderText}>Peso</Text>
-              {editMode && <Text style={styles.tableHeaderText}>Ações</Text>}
-            </View>
-            {inventario.map((item, index) => (
-              <View key={index} style={styles.tableRow}>
-                <Text style={styles.tableCell}>{item.nome}</Text>
-                <View style={styles.tableCell}>
-                  {editMode ? (
-                    <TextInput
-                      style={styles.quantidadeInput}
-                      keyboardType="numeric"
-                      value={String(item.quantidade)}
-                      onChangeText={(text) => handleQuantidadeChange(index, text)}
-                    />
-                  ) : (
-                    <Text>{item.quantidade}</Text>
-                  )}
-                </View>
-                <Text style={styles.tableCell}>{item.peso} kg</Text>
-                {editMode && (
-                  <TouchableOpacity style={styles.removeButton} onPress={() => handleRemoveItem(index)}>
-                    <Text style={styles.removeButtonText}>✕</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))}
-          </View>
-        ) : (
-          <Text style={styles.noItemsText}>Nenhum item no inventário.</Text>
-        )}
-      </View>
+	      <View style={styles.inventarioList}>
+	        <Text style={styles.subTitle}>Equipamento</Text>
+	        {equipment.length > 0 ? (
+	          <View style={styles.table}>
+	            <View style={styles.tableHeader}>
+	              <Text style={styles.tableHeaderText}>Item</Text>
+	              <Text style={styles.tableHeaderText}>Qtd</Text>
+	              <Text style={styles.tableHeaderText}>Peso</Text>
+	              <Text style={styles.tableHeaderText}>Notas</Text>
+	              {editMode && <Text style={styles.tableHeaderText}>Ações</Text>}
+	            </View>
+	            {equipment.map((item, index) => (
+	              <View key={index} style={styles.tableRow}>
+	                <Text style={styles.tableCell}>{item.name}</Text>
+	                <View style={styles.tableCell}>
+	                  {editMode ? (
+	                    <TextInput
+	                      style={styles.quantidadeInput}
+	                      keyboardType="numeric"
+	                      value={String(item.qty)}
+	                      onChangeText={(text) => handleQuantityChange(index, text)}
+	                    />
+	                  ) : (
+	                    <Text>{item.qty}</Text>
+	                  )}
+	                </View>
+	                <Text style={styles.tableCell}>{item.weight} kg</Text>
+	                <Text style={styles.tableCell}>{item.notes}</Text>
+	                {editMode && (
+	                  <TouchableOpacity style={styles.removeButton} onPress={() => handleRemoveItem(index)}>
+	                    <Text style={styles.removeButtonText}>✕</Text>
+	                  </TouchableOpacity>
+	                )}
+	              </View>
+	            ))}
+	          </View>
+	        ) : (
+	          <Text style={styles.noItemsText}>Nenhum equipamento cadastrado.</Text>
+	        )}
+	
+	        <Text style={styles.subTitle}>Itens Mágicos Sintonizados</Text>
+	        {magicItemsAttuned.length > 0 ? (
+	          <View style={styles.table}>
+	            <View style={styles.tableHeader}>
+	              <Text style={styles.tableHeaderText}>Item</Text>
+	              <Text style={styles.tableHeaderText}>Sintonizado</Text>
+	              {editMode && <Text style={styles.tableHeaderText}>Ações</Text>}
+	            </View>
+	            {magicItemsAttuned.map((item, index) => (
+	              <View key={index} style={styles.tableRow}>
+	                <Text style={styles.tableCell}>{item.name}</Text>
+	                <TouchableOpacity
+	                  style={styles.tableCell}
+	                  onPress={() => handleToggleAttuned(index)}
+	                  disabled={!editMode}
+	                >
+	                  <Text style={styles.attunedStatus}>{item.attuned ? 'Sim' : 'Não'}</Text>
+	                </TouchableOpacity>
+	                {editMode && (
+	                  <TouchableOpacity style={styles.removeButton} onPress={() => handleRemoveItem(index)}>
+	                    <Text style={styles.removeButtonText}>✕</Text>
+	                  </TouchableOpacity>
+	                )}
+	              </View>
+	            ))}
+	          </View>
+	        ) : (
+	          <Text style={styles.noItemsText}>Nenhum item mágico sintonizado.</Text>
+	        )}
+	      </View>
 
       {editMode && (
         <View style={styles.addForm}>
-          <Text style={styles.addFormTitle}>Adicionar Item</Text>
-          <View style={styles.formRow}>
-            <TextInput
-              style={styles.input}
-              placeholder="Nome do Item"
-              value={novoItem.nome}
-              onChangeText={(text) => handleItemChange('nome', text)}
-            />
-            <TextInput
-              style={[styles.input, styles.smallInput]}
-              keyboardType="numeric"
-              placeholder="Qtd"
-              value={novoItem.quantidade}
-              onChangeText={(text) => handleItemChange('quantidade', text)}
-            />
-            <TextInput
-              style={[styles.input, styles.smallInput]}
-              keyboardType="numeric"
-              placeholder="Peso (kg)"
-              value={novoItem.peso}
-              onChangeText={(text) => handleItemChange('peso', text)}
-            />
-            <TouchableOpacity style={styles.addButton} onPress={handleAddItem}>
-              <Text style={styles.addButtonText}>Adicionar</Text>
-            </TouchableOpacity>
-          </View>
+	          <Text style={styles.addFormTitle}>Adicionar Equipamento</Text>
+	          <View style={styles.formRow}>
+	            <TextInput
+	              style={styles.input}
+	              placeholder="Nome do Item"
+	              value={novoItem.name}
+	              onChangeText={(text) => handleItemChange('name', text)}
+	            />
+	            <TextInput
+	              style={[styles.input, styles.smallInput]}
+	              keyboardType="numeric"
+	              placeholder="Qtd"
+	              value={novoItem.qty}
+	              onChangeText={(text) => handleItemChange('qty', text)}
+	            />
+	            <TextInput
+	              style={[styles.input, styles.smallInput]}
+	              keyboardType="numeric"
+	              placeholder="Peso (kg)"
+	              value={novoItem.weight}
+	              onChangeText={(text) => handleItemChange('weight', text)}
+	            />
+	          </View>
+	          <TextInput
+	            style={styles.input}
+	            placeholder="Notas (ex: 'Corda de Cânhamo (15m)')"
+	            value={novoItem.notes}
+	            onChangeText={(text) => handleItemChange('notes', text)}
+	          />
+	          <TouchableOpacity style={styles.addButton} onPress={handleAddItem}>
+	            <Text style={styles.addButtonText}>Adicionar Equipamento</Text>
+	          </TouchableOpacity>
         </View>
       )}
     </View>
@@ -207,24 +259,30 @@ const styles = StyleSheet.create({
   moedas: {
     flexDirection: 'row',
   },
-  moeda: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 15,
-  },
-  moedaIcon: {
-    fontSize: 16,
-    marginRight: 5,
-  },
-  moedaLabel: {
-    fontSize: 14,
-    color: '#777',
-  },
-  moedaValor: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
+	  moeda: {
+	    flexDirection: 'row',
+	    alignItems: 'center',
+	    marginLeft: 15,
+	  },
+	  moedaInput: {
+	    width: 50,
+	    height: 25,
+	    borderColor: '#ddd',
+	    borderWidth: 1,
+	    borderRadius: 5,
+	    textAlign: 'center',
+	    fontSize: 14,
+	    backgroundColor: '#f9f9f9',
+	  },
+	  moedaLabel: {
+	    fontSize: 14,
+	    color: '#777',
+	  },
+	  moedaValor: {
+	    fontSize: 16,
+	    fontWeight: 'bold',
+	    color: '#333',
+	  },
   inventarioList: {
     // Estilos para a lista de inventário
   },
@@ -241,24 +299,36 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
   },
-  tableHeaderText: {
-    flex: 1,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: '#333',
-  },
+	  tableHeaderText: {
+	    flex: 1,
+	    fontWeight: 'bold',
+	    textAlign: 'center',
+	    color: '#333',
+	  },
+	  subTitle: {
+	    fontSize: 16,
+	    fontWeight: 'bold',
+	    color: '#555',
+	    marginTop: 10,
+	    marginBottom: 5,
+	  },
   tableRow: {
     flexDirection: 'row',
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  tableCell: {
-    flex: 1,
-    textAlign: 'center',
-    color: '#555',
-    justifyContent: 'center',
-  },
+	  tableCell: {
+	    flex: 1,
+	    textAlign: 'center',
+	    color: '#555',
+	    justifyContent: 'center',
+	    paddingHorizontal: 5,
+	  },
+	  attunedStatus: {
+	    fontWeight: 'bold',
+	    color: '#3b82f6',
+	  },
   quantidadeInput: {
     height: 30,
     borderColor: '#ddd',
@@ -268,11 +338,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     backgroundColor: '#f9f9f9',
   },
-  removeButton: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+	  removeButton: {
+	    width: 50,
+	    alignItems: 'center',
+	    justifyContent: 'center',
+	  },
   removeButtonText: {
     color: 'red',
     fontWeight: 'bold',
@@ -313,16 +383,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginRight: 10,
   },
-  smallInput: {
-    flex: 0.5,
-  },
-  addButton: {
-    backgroundColor: '#28a745',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+	  smallInput: {
+	    flex: 0.5,
+	    marginRight: 10,
+	  },
+	  addButton: {
+	    backgroundColor: '#28a745',
+	    padding: 10,
+	    borderRadius: 5,
+	    alignItems: 'center',
+	    justifyContent: 'center',
+	    marginTop: 10,
+	  },
   addButtonText: {
     color: '#fff',
     fontWeight: 'bold',

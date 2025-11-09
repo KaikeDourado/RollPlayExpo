@@ -1,72 +1,83 @@
 import React from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 /**
  * @function PericiasProficienciasSection
- * @description Componente para exibir e editar perícias e proficiências do personagem.
- * Adaptado do projeto React original para React Native.
- * A funcionalidade de edição e salvamento é simulada, pois a lógica de backend foi removida.
- * @param {object} pericias - Objeto indicando proficiência em cada perícia.
- * @param {object} atributos - Objeto contendo os valores dos atributos.
- * @param {number} nivel - Nível do personagem, usado para calcular o bônus de proficiência.
+ * @description Componente para exibir e editar perícias, proficiências e idiomas do personagem.
+ * @param {object} skills - Objeto contendo os dados completos das perícias.
+ * @param {number} proficiencyBonus - Bônus de proficiência do personagem.
+ * @param {object} equipmentProficiencies - Objeto contendo proficiências em equipamentos. (Não usado diretamente, mas mantido para documentação)
+ * @param {array} languages - Array de idiomas.
+ * @param {object} treinamentoEProfEquip - Objeto com proficiências de equipamento formatadas (para exibição).
  * @param {boolean} editMode - Indica se a seção está em modo de edição.
  * @param {function} onSave - Função para salvar as alterações nas perícias (simulada).
  */
-const PericiasProficienciasSection = ({ pericias, atributos, nivel, editMode, onSave }) => {
-  const calcModificador = (valor) => {
-    return Math.floor((valor - 10) / 2);
-  };
-
+const PericiasProficienciasSection = ({
+  skills,
+  proficiencyBonus,
+  equipmentProficiencies,
+  languages,
+  treinamentoEProfEquip,
+  editMode,
+  onSave,
+}) => {
   const formatModificador = (mod) => {
     return mod >= 0 ? `+${mod}` : `${mod}`;
   };
 
-  const calcBonusProficiencia = (nivel) => {
-    return Math.floor((nivel - 1) / 4) + 2;
+  const skillLabels = {
+    athletics: "Atletismo",
+    acrobatics: "Acrobacia",
+    sleightOfHand: "Prestidigitação",
+    stealth: "Furtividade",
+    arcana: "Arcanismo",
+    history: "História",
+    investigation: "Investigação",
+    nature: "Natureza",
+    religion: "Religião",
+    animalHandling: "Lidar com Animais",
+    insight: "Intuição",
+    medicine: "Medicina",
+    perception: "Percepção",
+    survival: "Sobrevivência",
+    deception: "Enganação",
+    intimidation: "Intimidação",
+    performance: "Atuação",
+    persuasion: "Persuasão",
   };
 
-  const handleToggleProficiencia = (periciaId) => {
+  const handleToggleProficiency = (skillKey) => {
     if (editMode && onSave) {
-      const updatedPericias = {
-        ...pericias,
-        [periciaId]: !pericias[periciaId],
+      const skill = skills[skillKey];
+      const newProficient = !skill.proficient;
+      
+      // Recalcula o bônus da perícia.
+      // O bônus no JSON é o valor final. Para recalcular, precisamos do mod do atributo.
+      // Assumindo que o `skill.bonus` é o valor atual, e o `skill.proficient` é o estado atual.
+      // O mod do atributo é: skill.bonus - (skill.proficient ? proficiencyBonus : 0)
+      const attributeMod = skill.bonus - (skill.proficient ? proficiencyBonus : 0);
+      const newBonus = newProficient ? attributeMod + proficiencyBonus : attributeMod;
+
+      const updatedSkills = {
+        ...skills,
+        [skillKey]: {
+          ...skill,
+          proficient: newProficient,
+          bonus: newBonus,
+        },
       };
-      onSave(updatedPericias);
+      onSave(updatedSkills);
     }
   };
 
-  const periciasInfo = [
-    { id: "acrobacia", nome: "Acrobacia", atributo: "destreza" },
-    { id: "arcanismo", nome: "Arcanismo", atributo: "inteligencia" },
-    { id: "atletismo", nome: "Atletismo", atributo: "forca" },
-    { id: "atuacao", nome: "Atuação", atributo: "carisma" },
-    { id: "enganacao", nome: "Enganação", atributo: "carisma" },
-    { id: "furtividade", nome: "Furtividade", atributo: "destreza" },
-    { id: "historia", nome: "História", atributo: "inteligencia" },
-    { id: "intimidacao", nome: "Intimidação", atributo: "carisma" },
-    { id: "intuicao", nome: "Intuição", atributo: "sabedoria" },
-    { id: "investigacao", nome: "Investigação", atributo: "inteligencia" },
-    { id: "lidarComAnimais", nome: "Lidar com Animais", atributo: "sabedoria" },
-    { id: "medicina", nome: "Medicina", atributo: "sabedoria" },
-    { id: "natureza", nome: "Natureza", atributo: "inteligencia" },
-    { id: "percepcao", nome: "Percepção", atributo: "sabedoria" },
-    { id: "persuasao", nome: "Persuasão", atributo: "carisma" },
-    { id: "prestidigitacao", nome: "Prestidigitação", atributo: "destreza" },
-    { id: "religiao", nome: "Religião", atributo: "inteligencia" },
-    { id: "sobrevivencia", nome: "Sobrevivência", atributo: "sabedoria" },
-  ];
-
-  const bonusProficiencia = calcBonusProficiencia(nivel);
-
-  const calcBonusPericia = (periciaId) => {
-    const info = periciasInfo.find((p) => p.id === periciaId);
-    const modAtributo = calcModificador(atributos[info.atributo]);
-
-    if (pericias[periciaId]) {
-      return modAtributo + bonusProficiencia;
-    }
-
-    return modAtributo;
+  // Mapeamento de atributos para exibição
+  const attributeMap = {
+    str: 'FOR',
+    dex: 'DES',
+    con: 'CON',
+    int: 'INT',
+    wis: 'SAB',
+    cha: 'CAR',
   };
 
   return (
@@ -78,22 +89,22 @@ const PericiasProficienciasSection = ({ pericias, atributos, nivel, editMode, on
 
       <View style={styles.bonusProficiencia}>
         <Text>Bônus de Proficiência: </Text>
-        <Text style={styles.bonusValor}>{formatModificador(bonusProficiencia)}</Text>
+        <Text style={styles.bonusValor}>{formatModificador(proficiencyBonus)}</Text>
       </View>
 
       <View style={styles.periciasList}>
-        {periciasInfo.map((pericia) => (
+        {Object.entries(skills).map(([key, skill]) => (
           <TouchableOpacity
-            key={pericia.id}
+            key={key}
             style={styles.periciaItem}
-            onPress={() => handleToggleProficiencia(pericia.id)}
+            onPress={() => handleToggleProficiency(key)}
             disabled={!editMode}
           >
-            <Text style={styles.periciaProficiente}>{pericias[pericia.id] ? "●" : "○"}</Text>
-            <Text style={styles.periciaBonus}>{formatModificador(calcBonusPericia(pericia.id))}</Text>
-            <Text style={styles.periciaNome}>{pericia.nome}</Text>
+            <Text style={styles.periciaProficiente}>{skill.proficient ? "●" : "○"}</Text>
+            <Text style={styles.periciaBonus}>{formatModificador(skill.bonus)}</Text>
+            <Text style={styles.periciaNome}>{skillLabels[key]}</Text>
             <Text style={styles.periciaAtributo}>
-              ({pericia.atributo.substring(0, 3).toUpperCase()})
+              ({attributeMap[skill.ability]})
             </Text>
           </TouchableOpacity>
         ))}
@@ -102,30 +113,24 @@ const PericiasProficienciasSection = ({ pericias, atributos, nivel, editMode, on
       <View style={styles.outrasProficiencias}>
         <Text style={styles.outrasProficienciasTitle}>Outras Proficiências e Idiomas</Text>
         <View style={styles.proficienciasContent}>
-          {editMode ? (
-            <TextInput
-              style={styles.proficienciasTextarea}
-              placeholder="Adicione outras proficiências e idiomas aqui..."
-              defaultValue="Idiomas: Comum, Anão\nArmas: Simples, Marciais\nArmaduras: Todas as armaduras e escudos\nFerramentas: Ferramentas de ferreiro"
-              multiline
-              textAlignVertical="top"
-            />
-          ) : (
-            <View>
-              <Text style={styles.proficienciasText}>
-                <Text style={styles.proficienciasTextBold}>Idiomas:</Text> Comum, Anão
-              </Text>
-              <Text style={styles.proficienciasText}>
-                <Text style={styles.proficienciasTextBold}>Armas:</Text> Simples, Marciais
-              </Text>
-              <Text style={styles.proficienciasText}>
-                <Text style={styles.proficienciasTextBold}>Armaduras:</Text> Todas as armaduras e escudos
-              </Text>
-              <Text style={styles.proficienciasText}>
-                <Text style={styles.proficienciasTextBold}>Ferramentas:</Text> Ferramentas de ferreiro
-              </Text>
-            </View>
-          )}
+          {/* Exibição de Proficiências de Equipamento */}
+          <Text style={styles.proficienciasText}>
+            <Text style={styles.proficienciasTextBold}>Armaduras:</Text> {treinamentoEProfEquip.armadura.join(', ')}
+          </Text>
+          <Text style={styles.proficienciasText}>
+            <Text style={styles.proficienciasTextBold}>Armas:</Text> {treinamentoEProfEquip.armas.join(', ')}
+          </Text>
+          <Text style={styles.proficienciasText}>
+            <Text style={styles.proficienciasTextBold}>Ferramentas:</Text> {treinamentoEProfEquip.ferramentas.join(', ')}
+          </Text>
+          
+          {/* Exibição de Idiomas */}
+          <Text style={styles.proficienciasText}>
+            <Text style={styles.proficienciasTextBold}>Idiomas:</Text> {languages.join(', ')}
+          </Text>
+          
+          {/* A edição de proficiências e idiomas é mais complexa e pode ser implementada com um modal ou TextInput grande em editMode */}
+          {/* Por enquanto, apenas exibimos. */}
         </View>
       </View>
     </View>
@@ -221,15 +226,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#eee',
   },
-  proficienciasTextarea: {
-    minHeight: 120,
-    borderColor: '#ddd',
-    borderWidth: 1,
-    borderRadius: 5,
-    padding: 10,
-    fontSize: 16,
-    color: '#333',
-  },
   proficienciasText: {
     fontSize: 16,
     color: '#555',
@@ -242,4 +238,3 @@ const styles = StyleSheet.create({
 });
 
 export default PericiasProficienciasSection;
-

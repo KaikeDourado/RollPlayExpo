@@ -21,29 +21,49 @@ export default function RegisterForm() {
   const [terms, setTerms] = useState(false);
   const [error, setError] = useState('');
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
     setError('');
+    setLoading(true);
 
-    if (password !== confirmPassword) {
-      setError('As senhas não conferem');
-      return;
-    }
+    try {
+      if (!username || !email || !password) {
+        throw new Error('Por favor, preencha todos os campos.');
+      }
 
-    if (!terms) {
-      setError('Você deve aceitar os Termos de Serviço e a Política de Privacidade.');
-      return;
-    }
+      if (password !== confirmPassword) {
+        throw new Error('As senhas não conferem');
+      }
 
-    // Lógica de registro removida conforme solicitado (apenas frontend)
-    // Aqui você integraria a chamada à API de backend para registrar o usuário
-    // Por enquanto, apenas simula um registro bem-sucedido e navega
+      if (!terms) {
+        throw new Error('Você deve aceitar os Termos de Serviço e a Política de Privacidade.');
+      }
 
-    if (username && email && password && confirmPassword && terms) {
-      Alert.alert('Sucesso', 'Conta criada com sucesso! Por favor, verifique seu e-mail para ativar sua conta.');
-      navigation.navigate('Login'); // Navega para a tela de Login após o registro
-    } else {
-      setError('Por favor, preencha todos os campos.');
+      const response = await axios.post(
+        'https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/users/',
+        {
+          email: email,
+          password: password,
+          displayName: username
+        }
+      );
+
+      Alert.alert(
+        'Sucesso',
+        'Conta criada com sucesso! Por favor, verifique seu e-mail para ativar sua conta.'
+      )
+      //TODO: Ajustar essa navegação de acordo com o padrão do app
+      navigation.navigate('Login');
+    } catch (err) {
+      console.error('Erro no registro:', err);
+      setError(
+        err.response?.data?.message ||
+        err.message ||
+        'Erro ao criar conta. Tente novamente.'
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -110,8 +130,14 @@ export default function RegisterForm() {
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <TouchableOpacity style={styles.registerButton} onPress={handleSubmit}>
-        <Text style={styles.registerButtonText}>Criar conta gratuita</Text>
+      <TouchableOpacity
+       style={[
+        styles.registerButton,
+        loading && { opacity: 0.7 }
+        ]} 
+        onPress={handleSubmit}
+        disabled={loading}>
+        <Text style={styles.registerButtonText}>{loading ? 'Criando conta...' : 'Criar conta gratuita'}</Text>
       </TouchableOpacity>
 
       <View style={styles.footer}>

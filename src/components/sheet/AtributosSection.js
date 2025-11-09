@@ -6,84 +6,44 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-nativ
  * @description Componente para exibir e editar atributos e perícias do personagem.
  * Adaptado do projeto React original para React Native.
  * A funcionalidade de edição e salvamento é simulada, pois a lógica de backend foi removida.
- * @param {object} atributos - Objeto contendo os valores dos atributos (forca, destreza, etc.).
- * @param {object} pericias - Objeto indicando proficiência em cada perícia.
- * @param {number} nivel - Nível do personagem, usado para calcular o bônus de proficiência.
+ * @param {object} attributes - Objeto contendo os dados completos dos atributos (str, dex, con, int, wis, cha).
+ * @param {object} skills - Objeto contendo os dados completos das perícias. (REMOVIDO, pois a lógica de perícias será movida para PericiasProficienciasSection)
+ * @param {number} proficiencyBonus - Bônus de proficiência do personagem.
  * @param {boolean} editMode - Indica se a seção está em modo de edição.
- * @param {function} onSaveAtributos - Função para salvar os atributos (simulada).
- * @param {function} onSavePericias - Função para salvar as perícias (simulada).
+ * @param {function} onSave - Função para salvar os atributos (simulada).
+ * @param {function} onSavePericias - Função para salvar as perícias (REMOVIDO).
  */
-const AtributosSection = ({ atributos, pericias, nivel, editMode, onSaveAtributos, onSavePericias }) => {
-  const calcModificador = (valor) => {
-    return Math.floor((valor - 10) / 2);
-  };
-
+const AtributosSection = ({ attributes, proficiencyBonus, editMode, onSave }) => {
   const formatModificador = (mod) => {
     return mod >= 0 ? `+${mod}` : `${mod}`;
   };
 
-  const calcBonusProficiencia = (nivel) => {
-    return Math.floor((nivel - 1) / 4) + 2;
-  };
+  const handleChangeAttribute = (key, value) => {
+    const score = Number.parseInt(value) || 0;
+    const mod = Math.floor((score - 10) / 2);
+    const saveBonus = attributes[key].saveProficient ? mod + proficiencyBonus : mod;
 
-  const handleChangeAtributos = (name, value) => {
-    if (editMode && onSaveAtributos) {
-      const updatedAtributos = { ...atributos, [name]: Number.parseInt(value) || 0 };
-      onSaveAtributos(updatedAtributos);
-    }
-  };
-
-  const handleToggleProficiencia = (pericia) => {
-    if (editMode && onSavePericias) {
-      const updatedPericias = {
-        ...pericias,
-        [pericia]: !pericias[pericia],
+    if (editMode && onSave) {
+      const updatedAttributes = {
+        ...attributes,
+        [key]: {
+          ...attributes[key],
+          score: score,
+          mod: mod,
+          saveBonus: saveBonus,
+        },
       };
-      onSavePericias(updatedPericias);
+      onSave(updatedAttributes);
     }
   };
 
   const atributosLabels = {
-    forca: { nome: "Força", abrev: "FOR" },
-    destreza: { nome: "Destreza", abrev: "DES" },
-    constituicao: { nome: "Constituição", abrev: "CON" },
-    inteligencia: { nome: "Inteligência", abrev: "INT" },
-    sabedoria: { nome: "Sabedoria", abrev: "SAB" },
-    carisma: { nome: "Carisma", abrev: "CAR" },
-  };
-
-  const periciasInfo = [
-    { id: "acrobacia", nome: "Acrobacia", atributo: "destreza" },
-    { id: "arcanismo", nome: "Arcanismo", atributo: "inteligencia" },
-    { id: "atletismo", nome: "Atletismo", atributo: "forca" },
-    { id: "atuacao", nome: "Atuação", atributo: "carisma" },
-    { id: "enganacao", nome: "Enganação", atributo: "carisma" },
-    { id: "furtividade", nome: "Furtividade", atributo: "destreza" },
-    { id: "historia", nome: "História", atributo: "inteligencia" },
-    { id: "intimidacao", nome: "Intimidação", atributo: "carisma" },
-    { id: "intuicao", nome: "Intuição", atributo: "sabedoria" },
-    { id: "investigacao", nome: "Investigação", atributo: "inteligencia" },
-    { id: "lidarComAnimais", nome: "Lidar com Animais", atributo: "sabedoria" },
-    { id: "medicina", nome: "Medicina", atributo: "sabedoria" },
-    { id: "natureza", nome: "Natureza", atributo: "inteligencia" },
-    { id: "percepcao", nome: "Percepção", atributo: "sabedoria" },
-    { id: "persuasao", nome: "Persuasão", atributo: "carisma" },
-    { id: "prestidigitacao", nome: "Prestidigitação", atributo: "destreza" },
-    { id: "religiao", nome: "Religião", atributo: "inteligencia" },
-    { id: "sobrevivencia", nome: "Sobrevivência", atributo: "sabedoria" },
-  ];
-
-  const bonusProficiencia = calcBonusProficiencia(nivel);
-
-  const calcBonusPericia = (periciaId) => {
-    const info = periciasInfo.find((p) => p.id === periciaId);
-    const modAtributo = calcModificador(atributos[info.atributo]);
-
-    if (pericias[periciaId]) {
-      return modAtributo + bonusProficiencia;
-    }
-
-    return modAtributo;
+    str: { nome: "Força", abrev: "FOR" },
+    dex: { nome: "Destreza", abrev: "DES" },
+    con: { nome: "Constituição", abrev: "CON" },
+    int: { nome: "Inteligência", abrev: "INT" },
+    wis: { nome: "Sabedoria", abrev: "SAB" },
+    cha: { nome: "Carisma", abrev: "CAR" },
   };
 
   return (
@@ -94,86 +54,52 @@ const AtributosSection = ({ atributos, pericias, nivel, editMode, onSaveAtributo
       </View>
 
       <View style={styles.atributosGrid}>
-        {Object.entries(atributosLabels).map(([key, { nome, abrev }]) => (
+        {Object.entries(attributes).map(([key, attr]) => (
           <View key={key} style={styles.atributoCard}>
-            <Text style={styles.atributoHeader}>{abrev}</Text>
-            <Text style={styles.atributoNome}>{nome}</Text>
+            <Text style={styles.atributoHeader}>{atributosLabels[key].abrev}</Text>
+            <Text style={styles.atributoNome}>{atributosLabels[key].nome}</Text>
 
             <View style={styles.atributoValor}>
               {editMode ? (
                 <TextInput
                   style={styles.inputAtributo}
                   keyboardType="numeric"
-                  value={String(atributos[key])}
-                  onChangeText={(text) => handleChangeAtributos(key, text)}
+                  value={String(attr.score)}
+                  onChangeText={(text) => handleChangeAttribute(key, text)}
                   maxLength={2} // Limitar a 2 dígitos para atributos
                 />
               ) : (
-                <Text style={styles.atributoValorText}>{atributos[key]}</Text>
+                <Text style={styles.atributoValorText}>{attr.score}</Text>
               )}
             </View>
 
-            <Text style={styles.atributoModificador}>{formatModificador(calcModificador(atributos[key]))}</Text>
+            <Text style={styles.atributoModificador}>{formatModificador(attr.mod)}</Text>
+            
+            {/* Bônus de Salvamento */}
+            <TouchableOpacity
+              style={styles.saveBonusContainer}
+              onPress={() => {
+                if (editMode && onSave) {
+                  const newSaveProficient = !attr.saveProficient;
+                  const newSaveBonus = newSaveProficient ? attr.mod + proficiencyBonus : attr.mod;
+                  const updatedAttributes = {
+                    ...attributes,
+                    [key]: {
+                      ...attr,
+                      saveProficient: newSaveProficient,
+                      saveBonus: newSaveBonus,
+                    },
+                  };
+                  onSave(updatedAttributes);
+                }
+              }}
+              disabled={!editMode}
+            >
+              <Text style={styles.saveBonusProficient}>{attr.saveProficient ? "●" : "○"}</Text>
+              <Text style={styles.saveBonusText}>Salvamento: {formatModificador(attr.saveBonus)}</Text>
+            </TouchableOpacity>
           </View>
         ))}
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionIcon}>🎯</Text>
-        <Text style={styles.sectionTitle}>Perícias e Proficiências</Text>
-      </View>
-
-      <View style={styles.bonusProficiencia}>
-        <Text>Bônus de Proficiência: </Text>
-        <Text style={styles.bonusValor}>{formatModificador(bonusProficiencia)}</Text>
-      </View>
-
-      <View style={styles.periciasList}>
-        {periciasInfo.map((pericia) => (
-          <TouchableOpacity
-            key={pericia.id}
-            style={styles.periciaItem}
-            onPress={() => handleToggleProficiencia(pericia.id)}
-            disabled={!editMode}
-          >
-            <Text style={styles.periciaProficiente}>{pericias[pericia.id] ? "●" : "○"}</Text>
-            <Text style={styles.periciaBonus}>{formatModificador(calcBonusPericia(pericia.id))}</Text>
-            <Text style={styles.periciaNome}>{pericia.nome}</Text>
-            <Text style={styles.periciaAtributo}>
-              ({pericia.atributo.substring(0, 3).toUpperCase()})
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={styles.outrasProficiencias}>
-        <Text style={styles.outrasProficienciasTitle}>Outras Proficiências e Idiomas</Text>
-        <View style={styles.proficienciasContent}>
-          {editMode ? (
-            <TextInput
-              style={styles.proficienciasTextarea}
-              placeholder="Adicione outras proficiências e idiomas aqui..."
-              defaultValue="Idiomas: Comum, Anão\nArmas: Simples, Marciais\nArmaduras: Todas as armaduras e escudos\nFerramentas: Ferramentas de ferreiro"
-              multiline
-              textAlignVertical="top"
-            />
-          ) : (
-            <View>
-              <Text style={styles.proficienciasText}>
-                <Text style={styles.proficienciasTextBold}>Idiomas:</Text> Comum, Anão
-              </Text>
-              <Text style={styles.proficienciasText}>
-                <Text style={styles.proficienciasTextBold}>Armas:</Text> Simples, Marciais
-              </Text>
-              <Text style={styles.proficienciasText}>
-                <Text style={styles.proficienciasTextBold}>Armaduras:</Text> Todas as armaduras e escudos
-              </Text>
-              <Text style={styles.proficienciasText}>
-                <Text style={styles.proficienciasTextBold}>Ferramentas:</Text> Ferramentas de ferreiro
-              </Text>
-            </View>
-          )}
-        </View>
       </View>
     </View>
   );
@@ -252,6 +178,25 @@ const styles = StyleSheet.create({
   atributoModificador: {
     fontSize: 16,
     color: '#555',
+    marginBottom: 5,
+  },
+  saveBonusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 5,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 5,
+    marginTop: 5,
+  },
+  saveBonusProficient: {
+    fontSize: 16,
+    marginRight: 5,
+    color: '#3b82f6',
+  },
+  saveBonusText: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: 'bold',
   },
   bonusProficiencia: {
     flexDirection: 'row',
