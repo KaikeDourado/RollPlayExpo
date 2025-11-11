@@ -24,6 +24,19 @@ export default function HomePage() {
             CRIE PERSONAGENS, ORGANIZE SESSÕES E ROLE DADOS - TUDO EM UM SÓ LUGAR.
           </Text>
         </View>
+        <View style={{ marginTop: 20 }}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: '#3b82f6',
+              paddingVertical: 12,
+              paddingHorizontal: 20,
+              borderRadius: 5,
+              marginRight: 10,
+            }}
+          >
+            <Text style={{ color: '#fff', fontWeight: 'bold' }}>SignUp</Text>
+          </TouchableOpacity>
+        </View>
         <Image source={require("../../assets/wizard_image.jpg")} style={styles.heroImage} />
       </View>
 
