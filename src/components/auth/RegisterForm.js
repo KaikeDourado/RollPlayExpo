@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
 // Importe um ícone de dado para React Native, por exemplo, de '@expo/vector-icons'
 // import { MaterialCommunityIcons } from '@expo/vector-icons';
 // Importe um ícone de check para React Native, por exemplo, de '@expo/vector-icons'

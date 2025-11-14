@@ -19,7 +19,6 @@ export default function LoginForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
-  const { login } = useAuth();
 
   const handleSubmit = async () => {
     setError('');
@@ -33,7 +32,6 @@ export default function LoginForm() {
     try {
       const result = await authApi.signInEmail(identifier, password);
       console.log('signIn result:', result);
-      await login(result);
     } catch (err) {
       console.error('Login error:', err);
       setError(err?.message || 'Falha no login. Verifique suas credenciais.');
