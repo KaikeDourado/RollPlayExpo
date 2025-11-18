@@ -1,31 +1,31 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { View, ActivityIndicator, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import { useAuth } from '../context/AuthContext';
 import AuthStack from './AuthStack';
 import AppStack from './AppStack';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
-import { useAuth } from '../context/AuthContext.jsx';
 
 function AppNavigator() {
   const { user, loading } = useAuth();
 
+  useEffect(() => {
+    // Se o usuário foi desconectado (user passou de algo para null)
+    // A navegação automática acontece abaixo
+  }, [user]);
+
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f2f5' }}>
+        <ActivityIndicator size="large" color="#3b82f6" />
       </View>
     );
   }
 
   return (
     <NavigationContainer>
-      {/* Se não autenticado, mostra AuthStack (Login/Register). Senão, AppStack. */}
       {user ? <AppStack /> : <AuthStack />}
     </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-});
 
 export default AppNavigator;

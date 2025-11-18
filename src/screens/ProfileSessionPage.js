@@ -23,16 +23,17 @@ import GeneralTab from '../components/profileSession/GeneralTab';
 import ChatTab from '../components/profileSession/ChatTab';
 import CustomDrawer from '../components/profileSession/CustomDrawer';
 import CharacterSelectModal from '../components/profileSession/CharacterSelectModal';
+import { fetchSecure } from '../lib/fetchSecure';
 
 const screenHeight = Dimensions.get('window').height;
 
 export default function ProfileSessionPage() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { campaignUid } = route.params;
+  const { campaignUid, campaignData } = route.params;
 
-  const [sessionData, setSessionData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [sessionData, setSessionData] = useState(campaignData || null);
+  const [loading, setLoading] = useState(!campaignData);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('GERAL');
   const [isChatVisible, setIsChatVisible] = useState(false);
@@ -68,7 +69,7 @@ export default function ProfileSessionPage() {
   const openCharacterModal = () => {
     setIsCharacterSelectVisible(true);
     Animated.timing(sheetPosition, {
-      toValue: 0, // Agora abre em tela cheia
+      toValue: 0,
       duration: 300,
       useNativeDriver: false,
     }).start();
@@ -105,22 +106,50 @@ export default function ProfileSessionPage() {
 
   useEffect(() => {
     const fetchSession = async () => {
-      setTimeout(() => {
-        if (campaignUid) {
+      // Se os dados já foram passados, não precisa fazer requisição
+      if (campaignData) {
+        setLoading(false);
+        return;
+      }
+
+      // Se não tem dados, tenta buscar da API
+      try {
+        console.log('Buscando dados da campanha:', campaignUid);
+        
+        const response = await fetchSecure(
+          `https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+          { method: 'GET' }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Dados da campanha recebidos:', data);
+          setSessionData(data);
+        } else {
+          setError('Erro ao carregar dados da campanha');
+          // Dados padrão como fallback
           setSessionData({
             uid: campaignUid,
-            name: `Campanha de Teste ${campaignUid}`,
-            description: `Esta é a descrição da campanha ${campaignUid}.`,
+            name: `Campanha ${campaignUid}`,
+            description: 'Campanha sem informações carregadas',
           });
-          setLoading(false);
-        } else {
-          setError('ID da campanha não fornecido.');
-          setLoading(false);
         }
-      }, 1000);
+      } catch (err) {
+        console.error('Erro ao buscar campanha:', err.message);
+        setError(err.message);
+        // Dados padrão como fallback
+        setSessionData({
+          uid: campaignUid,
+          name: `Campanha ${campaignUid}`,
+          description: 'Erro ao carregar dados',
+        });
+      } finally {
+        setLoading(false);
+      }
     };
+
     fetchSession();
-  }, [campaignUid]);
+  }, [campaignUid, campaignData]);
 
   const campaignCharacters = [
     { id: '1', name: 'Aragorn', class: 'Guerreiro', level: 5 },
@@ -141,8 +170,23 @@ export default function ProfileSessionPage() {
       </View>
     );
 
-  if (error) return <Text style={styles.errorText}>{error}</Text>;
-  if (!sessionData) return <Text style={styles.errorText}>Sessão não encontrada.</Text>;
+  if (error && !sessionData) 
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Erro: {error}</Text>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>Voltar</Text>
+        </TouchableOpacity>
+      </View>
+    );
+
+  if (!sessionData) 
+    return (
+      <Text style={styles.errorText}>Sessão não encontrada.</Text>
+    );
 
   const renderContent = () => {
     switch (activeTab) {
@@ -229,7 +273,7 @@ export default function ProfileSessionPage() {
             styles.characterSheet,
             { 
               transform: [{ translateY: sheetPosition }],
-              height: '100%', // Agora ocupa toda a tela
+              height: '100%',
             }
           ]}
           {...modalPanResponder.panHandlers}
@@ -248,7 +292,24 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0f1c' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { color: '#fff', marginTop: 10 },
-  errorText: { color: 'red', textAlign: 'center', padding: 20 },
+  errorContainer: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    backgroundColor: '#0a0f1c'
+  },
+  errorText: { color: '#ff6b6b', textAlign: 'center', padding: 20, fontSize: 16 },
+  backButton: {
+    marginTop: 20,
+    backgroundColor: '#3b82f6',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  backButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
   header: {
     backgroundColor: '#11182b',
     flexDirection: 'row',
@@ -257,10 +318,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
   },
+  menuButton: {
+    padding: 5,
+  },
   menuButtonText: { fontSize: 24, color: '#fff' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', flex: 1, marginLeft: 15 },
   exitText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
-  contentContainer: { flexGrow: 1, padding: 15 },
+  contentContainer: { flexGrow: 1, padding: 15, paddingBottom: 80 },
   tabContent: { backgroundColor: '#131b33', borderRadius: 10, padding: 15 },
 
   fichaButtonContainer: {
@@ -287,6 +351,7 @@ const styles = StyleSheet.create({
   },
   characterSheet: {
     position: 'absolute',
+    top: 0,
     left: 0,
     right: 0,
     backgroundColor: '#fff',
@@ -323,23 +388,5 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: 'hidden',
-  },
-
-  characterSheet: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#131525',
-    zIndex: 999,
-  },
-  sheetHandle: {
-    width: 50,
-    height: 6,
-    backgroundColor: '#ccc',
-    borderRadius: 3,
-    alignSelf: 'center',
-    marginVertical: 10,
   },
 });

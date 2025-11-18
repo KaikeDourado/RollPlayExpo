@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { authApi } from '../lib/auth';
-import axios from 'axios';
-// Para ícones, você pode usar @expo/vector-icons, por exemplo:
-// import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
+import { fetchSecure } from '../lib/fetchSecure';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * @function ProfilePage
@@ -22,6 +21,7 @@ export default function ProfilePage() {
   const [characters, setCharacters] = useState([]);
 
   const navigation = useNavigation();
+  const { logout } = useAuth();
 
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   const [isEnterSessionModalOpen, setIsEnterSessionModalOpen] = useState(false);
@@ -32,61 +32,126 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchUserData = async () => {
       setLoading(true);
+      setError('');
       try {
-        // Pegar token do usuário atual
-        const token = await authApi.getIdToken();
-        console.log('Token recebido:', token);
+        const currentUser = authApi.getCurrentUser();
         
-        if (!token) {
+        if (!currentUser) {
           throw new Error('Usuário não autenticado');
         }
 
-        const response = await axios.get(
-          'https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/users/token',
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-        );
-
-        // Assumindo que a API retorna um objeto com os dados do usuário
+        // Dados do usuário do Firebase (não precisa fazer requisição)
         const userData = {
-          displayName: response.data.displayName,
-
-          // TODO: Ajustar conforme os dados reais retornados pela API
-          // title: response.data.title,
-          // bio: response.data.bio,
-          // photoURL: response.data.photoURL,
-          // createdAt: response.data.createdAt,
-
-          // Usando dados dummy pra simular o resto por enquanto
+          uid: currentUser.uid,
+          displayName: currentUser.displayName || 'Usuário',
+          email: currentUser.email,
           title: 'Mestre de RPG',
           bio: 'Um mestre experiente em D&D 5e',
-          photoURL: null,
-          createdAt: '2023-01-15T10:00:00Z',
+          photoURL: currentUser.photoURL,
+          createdAt: new Date(currentUser.metadata?.creationTime).toISOString() || new Date().toISOString(),
           charactersCount: 3,
         };
 
         setUser(userData);
-        console.log('User data fetched:', userData);
+        console.log('User data loaded:', userData);
         setEditData(userData);
         
-        // Mantendo os dados dummy para campanhas e personagens
-        setCampaigns([
-          { id: '1', name: 'A Lenda de Eldoria' },
-          { id: '2', name: 'As Ruínas de Thandor' },
-        ]);
-        
-        setCharacters([
-          { id: 'c1', name: 'Gandalf, o Cinzento' },
-          { id: 'c2', name: 'Legolas, o Arqueiro' },
-          { id: 'c3', name: 'Gimli, o Anão' },
-        ]);
+        // Se você precisa buscar campanhas e personagens do seu backend, use fetchSecure:
+// Buscar campanhas
+        try {
+          console.log('Buscando campanhas para o usuário:', userData.uid);
+          
+          const response = await fetchSecure(
+            `https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/campaigns/user/${userData.uid}`,
+            { method: 'GET' }
+          );
+          
+          console.log('Status da resposta de campanhas:', response.status);
+          
+          if (response.ok) {
+            const campaignsData = await response.json();
+            console.log('Campanhas carregadas com sucesso:', campaignsData);
+            
+            // Verifica se é um array e tem dados
+            if (Array.isArray(campaignsData) && campaignsData.length > 0) {
+              setCampaigns(campaignsData);
+            } else if (campaignsData && campaignsData.campaigns && Array.isArray(campaignsData.campaigns)) {
+              // Se a resposta vem com a estrutura { campaigns: [...] }
+              setCampaigns(campaignsData.campaigns);
+            } else {
+              console.warn('Resposta de campanhas vazia');
+              setCampaigns([]);
+            }
+          } else {
+            console.warn('Erro ao carregar campanhas - Status:', response.status);
+            setCampaigns([]);
+          }
+        } catch (err) {
+          console.warn('Erro ao buscar campanhas:', err.message);
+          setCampaigns([]);
+        }
+
+        // Buscar personagens
+        try {
+          console.log('Buscando personagens para o usuário:', userData.uid);
+          
+          const response = await fetchSecure(
+            `https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/sheets/user/${userData.uid}`,
+            { method: 'GET' }
+          );
+          
+          console.log('Status da resposta de personagens:', response.status);
+          
+          if (response.ok) {
+            const charactersData = await response.json();
+            console.log('Personagens carregados com sucesso:', charactersData);
+            
+            // Verifica se é um array e tem dados
+            if (Array.isArray(charactersData) && charactersData.length > 0) {
+              setCharacters(charactersData);
+            } else if (charactersData && charactersData.sheets && Array.isArray(charactersData.sheets)) {
+              // Se a resposta vem com a estrutura { sheets: [...] }
+              setCharacters(charactersData.sheets);
+            } else {
+              console.warn('Resposta de personagens vazia');
+              setCharacters([]);
+            }
+          } else {
+            console.warn('Erro ao carregar personagens - Status:', response.status);
+            setCharacters([]);
+          }
+        } catch (err) {
+          console.warn('Erro ao buscar personagens:', err.message);
+          setCharacters([]);
+        }
 
       } catch (err) {
-        console.error('Erro ao buscar dados do usuário:', err);
+        console.error('Erro ao buscar dados do usuário:', err.message);
         setError('Não foi possível carregar os dados do usuário.');
+        
+        // Mesmo em caso de erro, mostrar dados padrão
+        if (authApi.getCurrentUser()) {
+          const currentUser = authApi.getCurrentUser();
+          const userData = {
+            displayName: currentUser.displayName || 'Usuário',
+            email: currentUser.email,
+            title: 'Mestre de RPG',
+            bio: 'Um mestre experiente em D&D 5e',
+            photoURL: currentUser.photoURL,
+            createdAt: new Date().toISOString(),
+          };
+          setUser(userData);
+          setEditData(userData);
+          setCampaigns([
+            { id: '1', name: 'A Lenda de Eldoria' },
+            { id: '2', name: 'As Ruínas de Thandor' },
+          ]);
+          setCharacters([
+            { id: 'c1', name: 'Gandalf, o Cinzento' },
+            { id: 'c2', name: 'Legolas, o Arqueiro' },
+            { id: 'c3', name: 'Gimli, o Anão' },
+          ]);
+        }
       } finally {
         setLoading(false);
       }
@@ -102,10 +167,6 @@ export default function ProfilePage() {
         <Text style={styles.loadingText}>Carregando perfil...</Text>
       </View>
     );
-  }
-
-  if (error && !editing) {
-    return <Text style={styles.errorText}>{error}</Text>;
   }
 
   if (!user) {
@@ -140,21 +201,31 @@ export default function ProfilePage() {
     }
 
     setSaving(true);
-    // Simulação de salvamento
-    setTimeout(() => {
+    try {
+      // Se você quiser salvar no backend, use fetchSecure:
+      // const response = await fetchSecure(
+      //   'https://sua-api.com/user/update',
+      //   {
+      //     method: 'PUT',
+      //     body: JSON.stringify(editData)
+      //   }
+      // );
+      // const result = await response.json();
+      
       setUser(editData);
       setEditing(false);
-      setSaving(false);
       Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
-    }, 1000);
+    } catch (err) {
+      setError('Erro ao salvar perfil: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  
   const handleLogout = async () => {
     try {
-      await authApi.signOut();
-      // caso queira forçar navegação para tela de login:
-      // navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
+      await logout();
+      // O logout automático redireciona para a tela de login
     } catch (err) {
       Alert.alert('Erro', 'Falha ao sair. Tente novamente.');
       console.error('Logout error:', err);
@@ -162,9 +233,7 @@ export default function ProfilePage() {
   };
 
   const handleCreateCharacter = () => {
-    // Simulação de criação de personagem
     Alert.alert('Funcionalidade', 'Criar personagem será implementado com a integração de backend.');
-    // navigation.navigate('Sheet', { characterId: 'new' });
   };
 
   const handleOpenSessionModal = () => setIsSessionModalOpen(true);
@@ -233,6 +302,8 @@ export default function ProfilePage() {
           <Text style={styles.statItem}>📅 MEMBRO DESDE {memberYear}</Text>
         </View>
 
+        {error && <Text style={styles.errorMessage}>{error}</Text>}
+
         <View style={styles.profileActions}>
           {editing ? (
             <>
@@ -265,22 +336,34 @@ export default function ProfilePage() {
             <Text style={styles.createButtonText}>+ CRIAR CAMPANHA</Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.campaignGrid}>
-          {campaigns.length > 0 ? (
-            campaigns.map((campaign) => (
+        
+        {campaigns.length > 0 ? (
+          <View style={styles.campaignList}>
+            {campaigns.map((campaign) => (
               <TouchableOpacity
-                key={campaign.id}
-                style={styles.campaignCard}
-                onPress={() => navigation.navigate('ProfileSession', { campaignUid: campaign.id })}
+                key={campaign.id || campaign._id}
+                style={styles.campaignItem}
+                onPress={() => {
+                  console.log('Navegando para campanha:', campaign);
+                  navigation.navigate('ProfileSession', { 
+                    campaignUid: campaign.id || campaign._id,
+                    campaignData: campaign
+                  });
+                }}
               >
-                <Image source={require("../../assets/default-campaign-img.png")} style={styles.campaignImage} />
-                <Text style={styles.campaignName}>{campaign.name}</Text>
+                <View style={styles.campaignItemContent}>
+                  <Text style={styles.campaignItemName}>{campaign.name || campaign.title}</Text>
+                  {campaign.description && (
+                    <Text style={styles.campaignItemDescription}>{campaign.description.substring(0, 50)}...</Text>
+                  )}
+                </View>
+                <Text style={styles.campaignArrow}>→</Text>
               </TouchableOpacity>
-            ))
-          ) : (
-            <Text style={styles.noItemsText}>Nenhuma campanha criada ainda.</Text>
-          )}
-        </View>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.noItemsText}>Nenhuma campanha criada ainda.</Text>
+        )}
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>MEUS PERSONAGENS</Text>
@@ -362,6 +445,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 20,
     fontSize: 16,
+  },
+  errorMessage: {
+    color: '#dc3545',
+    marginBottom: 10,
+    textAlign: 'center',
+    fontSize: 14,
   },
   sidebar: {
     backgroundColor: '#fff',
@@ -508,7 +597,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   campaignCard: {
-    width: '48%', // Ajuste para duas colunas
+    width: '48%',
     backgroundColor: '#fff',
     borderRadius: 10,
     marginBottom: 15,
@@ -539,7 +628,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   characterCard: {
-    width: '48%', // Ajuste para duas colunas
+    width: '48%',
     backgroundColor: '#fff',
     borderRadius: 10,
     marginBottom: 15,
@@ -581,7 +670,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-    logoutButton: {
+  logoutButton: {
     backgroundColor: '#6c757d',
     paddingVertical: 10,
     paddingHorizontal: 14,
@@ -594,6 +683,45 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+    campaignList: {
+    marginBottom: 30,
+  },
+  campaignItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 15,
+    paddingHorizontal: 15,
+    marginBottom: 10,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3b82f6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
+  },
+  campaignItemContent: {
+    flex: 1,
+  },
+  campaignItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  campaignItemDescription: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
+  },
+  campaignArrow: {
+    fontSize: 18,
+    color: '#3b82f6',
+    fontWeight: 'bold',
+    marginLeft: 10,
   },
 });
 
@@ -629,4 +757,3 @@ const modalStyles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-

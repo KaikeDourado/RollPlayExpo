@@ -1,28 +1,76 @@
-import {
-    signInWithEmailAndPassword,
-    createUserWithEmailAndPassword,
-    sendPasswordResetEmail,
-    signOut,
-    onAuthStateChanged,
+import { app, auth } from '../config/firebase';
+import { 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged,
+  getIdTokenResult
 } from 'firebase/auth';
-import { auth } from '../config/firebase';
 
 export const authApi = {
-    signUpEmail: (email, password) =>
-        createUserWithEmailAndPassword(auth, email, password),
+  async signInEmail(email, password) {
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      console.log('Login bem-sucedido:', result.user.email);
+      return result;
+    } catch (error) {
+      console.error('Erro ao fazer login:', error);
+      throw error;
+    }
+  },
 
-    signInEmail: (email, password) =>
-        signInWithEmailAndPassword(auth, email, password),
+  async signOut() {
+    try {
+      await signOut(auth);
+      console.log('Logout bem-sucedido');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+      throw error;
+    }
+  },
 
-    resetPassword: (email) => sendPasswordResetEmail(auth, email),
+  async getIdToken(forceRefresh = false) {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('Nenhum usuário autenticado');
+      }
+      
+      const token = await user.getIdToken(forceRefresh);
+      const tokenResult = await getIdTokenResult(user, forceRefresh);
+      
+      const now = new Date();
+      const expirationTime = new Date(tokenResult.expirationTime);
+      
+      console.log('Token válido até:', expirationTime);
+      
+      // Se o token está expirado
+      if (now >= expirationTime) {
+        console.warn('Token expirado, realizando logout automático');
+        await signOut(auth);
+        throw new Error('Token expirado');
+      }
+      
+      return token;
+    } catch (error) {
+      console.error('Erro ao obter token:', error);
+      if (error.message.includes('expirado')) {
+        await signOut(auth);
+      }
+      throw error;
+    }
+  },
 
-    signOut: () => signOut(auth),
+  getCurrentUser() {
+    return auth.currentUser;
+  },
 
-    onChange: (cb) => onAuthStateChanged(auth, cb),
+  onAuthStateChanged(callback) {
+    return onAuthStateChanged(auth, callback);
+  },
 
-    getIdToken: async () => {
-        const user = auth.currentUser;
-        console.log('Current user in getIdToken:', user);
-        return user ? await user.stsTokenManager.accessToken : null;
-    },
+  getAuth() {
+    return auth;
+  }
 };
+
+export default authApi;
