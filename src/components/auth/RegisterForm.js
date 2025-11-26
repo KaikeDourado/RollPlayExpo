@@ -73,7 +73,7 @@ export default function RegisterForm() {
       <View style={styles.header}>
         {/* <MaterialCommunityIcons name="dice-d20" size={48} color="#3b82f6" /> */}
         <Text style={styles.title}>Crie sua conta</Text>
-        <Text style={styles.subtitle}>Junte-se a milhares de jogadores de RPG</Text>
+        <Text style={styles.subtitle}>Junte-se a comunidade Roll & Play</Text>
       </View>
 
       <View style={styles.inputGroup}>
@@ -161,13 +161,13 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: '#FFFFFF',
     marginTop: 5,
   },
   inputGroup: {
@@ -175,13 +175,12 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    color: '#333',
+    color: '#ffffffff',
     marginBottom: 5,
     fontWeight: '600',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    height: 48,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
@@ -189,7 +188,7 @@ const styles = StyleSheet.create({
   },
   note: {
     fontSize: 12,
-    color: '#999',
+    color: '#ffffffff',
     marginTop: 5,
   },
   termsContainer: {
@@ -212,12 +211,13 @@ const styles = StyleSheet.create({
   },
   termsText: {
     flex: 1,
-    fontSize: 14,
-    color: '#333',
+    fontSize: 16,
+    color: '#ffffffff',
   },
   link: {
     color: '#3b82f6',
     fontWeight: 'bold',
+    fontSize: 16,
   },
   errorText: {
     color: 'red',

@@ -3,8 +3,10 @@ import { authApi } from './auth';
 export async function fetchSecure(url, init = {}) {
   try {
     console.log('Iniciando requisição segura para:', url);
+    console.log('Método:', init.method || 'GET');
     
     const token = await authApi.getIdToken(false);
+    console.log('Token obtido com sucesso');
     
     const headers = {
       ...init.headers,
@@ -20,6 +22,15 @@ export async function fetchSecure(url, init = {}) {
     });
 
     console.log('Resposta recebida com status:', response.status);
+
+    // Se o status for 404, endpoint não encontrado (pode ser esperado)
+    if (response.status === 404) {
+      console.warn('Erro 404 - Nenhum dado encontrado para:', url);
+      const errorText = await response.text();
+      console.log('Resposta do servidor:', errorText);
+      // Retornar a resposta mesmo assim para o código tratar
+      return response;
+    }
 
     // Se o status for 500, é erro do servidor
     if (response.status === 500) {
@@ -61,7 +72,7 @@ export async function fetchSecure(url, init = {}) {
       }
     }
 
-    if (!response.ok) {
+    if (!response.ok && response.status !== 404) {
       const errorText = await response.text();
       console.error(`Erro HTTP ${response.status}:`, errorText);
       throw new Error(`HTTP error! status: ${response.status}`);

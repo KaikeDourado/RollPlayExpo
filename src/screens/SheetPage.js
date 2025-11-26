@@ -6,14 +6,13 @@ import { useRoute } from '@react-navigation/native';
 import FichaHeader from '../components/sheet/FichaHeader';
 import VisaoGeralSection from '../components/sheet/VisaoGeralSection';
 import AtributosSection from '../components/sheet/AtributosSection';
-import PericiasProficienciasSection from '../components/sheet/PericiasProficienciasSection'; // Adicionado
+import PericiasProficienciasSection from '../components/sheet/PericiasProficienciasSection';
 import AtaquesMagiasSection from '../components/sheet/AtaquesMagiasSection';
 import InventarioSection from '../components/sheet/InventarioSection';
 import HabilidadesSection from '../components/sheet/HabilidadesSection';
 import PersonalidadeSection from '../components/sheet/PersonalidadeSection';
 import AnotacoesSection from '../components/sheet/AnotacoesSection';
 
-// Estrutura completa do JSON fornecida pelo usuário
 const initialCharacterData = {
   "userUid": "Ss52b0C44TgyrsMAwyjMaq7uMfi2",
   "campaignUid": "1762008485571",
@@ -26,10 +25,8 @@ const initialCharacterData = {
   "alignment": "Neutro Bom",
   "background": "Soldado",
   "xp": 6500,
-
   "proficiencyBonus": 3,
   "inspirationHeroica": false,
-
   "attributes": {
     "str": { "score": 16, "mod": 3, "saveProficient": true, "saveBonus": 6 },
     "dex": { "score": 14, "mod": 2, "saveProficient": false, "saveBonus": 2 },
@@ -38,7 +35,6 @@ const initialCharacterData = {
     "wis": { "score": 12, "mod": 1, "saveProficient": false, "saveBonus": 1 },
     "cha": { "score": 10, "mod": 0, "saveProficient": false, "saveBonus": 0 }
   },
-
   "skills": {
     "athletics": { "ability": "str", "proficient": true, "bonus": 6 },
     "acrobatics": { "ability": "dex", "proficient": false, "bonus": 2 },
@@ -59,41 +55,33 @@ const initialCharacterData = {
     "performance": { "ability": "cha", "proficient": false, "bonus": 0 },
     "persuasion": { "ability": "cha", "proficient": false, "bonus": 0 }
   },
-
   "passivePerception": 14,
   "size": "Médio",
   "speed": { "walk": 9, "swim": 0, "fly": 0, "climb": 0, "burrow": 0 },
   "initiative": 2,
-
   "ac": {
     "value": 18,
     "breakdown": { "base": 10, "dex": 2, "armor": 6, "shield": 0, "misc": 0 },
     "shieldEquipped": false
   },
-
   "hp": {
     "current": 41,
     "max": 49,
     "temp": 0,
     "hitDice": { "type": "d10", "max": 5, "spent": 2 }
   },
-
   "deathSaves": { "successes": 0, "failures": 0 },
-
   "equipmentProficiencies": {
     "armor": { "light": true, "medium": true, "heavy": true, "shields": true },
     "weapons": { "simple": true, "martial": true },
     "tools": ["Kit de Jogo (dados)", "Veículos Terrestres"]
   },
-
   "languages": ["Comum", "Élfico"],
-
   "treinamentoEProfEquip": {
     "armadura": ["Leve", "Média", "Pesada", "Escudos"],
     "armas": ["Simples", "Marciais"],
     "ferramentas": ["Kit de Jogo (dados)", "Veículos Terrestres"]
   },
-
   "weapons": [
     {
       "name": "Espada Longa",
@@ -108,7 +96,6 @@ const initialCharacterData = {
       "notes": "Arremesso"
     }
   ],
-
   "features": {
     "classFeatures": [
       "Estilo de Luta (Defesa)",
@@ -122,7 +109,6 @@ const initialCharacterData = {
     ],
     "feats": ["Sentinela"]
   },
-
   "inventory": {
     "equipment": [
       { "name": "Cota de Malha", "qty": 1, "weight": 27.5, "notes": "" },
@@ -135,7 +121,6 @@ const initialCharacterData = {
     ],
     "coins": { "cp": 12, "sp": 8, "ep": 0, "gp": 45, "pp": 1 }
   },
-
   "spellcasting": {
     "hasSpellcasting": false,
     "spellcastingAbility": null,
@@ -145,10 +130,7 @@ const initialCharacterData = {
     "preparedCount": null,
     "cantrips": [],
     "spellsByLevel": {
-      "0": {
-        "slots": { "total": 0, "expended": 0 },
-        "spells": []
-      },
+      "0": { "slots": { "total": 0, "expended": 0 }, "spells": [] },
       "1": { "slots": { "total": 0, "expended": 0 }, "spells": [] },
       "2": { "slots": { "total": 0, "expended": 0 }, "spells": [] },
       "3": { "slots": { "total": 0, "expended": 0 }, "spells": [] },
@@ -161,14 +143,12 @@ const initialCharacterData = {
     },
     "spellNotes": ""
   },
-
   "appearance": "Homem humano de 1,78 m, cabelo castanho curto, cicatriz discreta na sobrancelha, capa gasta.",
   "backstoryPersonality": "Ex-soldado disciplinado, protege os fracos, impaciente com injustiça.",
   "ideals": "Honra e dever.",
   "bonds": "Prometeu proteger o vilarejo natal.",
   "flaws": "Teimoso e desconfiado de magia.",
   "notes": "Anotar aqui quaisquer condições, inspiração, etc.",
-
   "createdAt": "2025-11-01T10:00:00.000Z",
   "updatedAt": "2025-11-01T10:00:00.000Z"
 };
@@ -293,7 +273,8 @@ const SheetPage = () => {
   if (loading || !characterData) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color="#3b9dff" />
+        <Text style={styles.loadingText}>Carregando ficha...</Text>
       </View>
     );
   }
@@ -312,7 +293,7 @@ const SheetPage = () => {
   return (
     <View style={styles.container}>
       <FichaHeader
-        characterImage={characterData.characterImage} // opcional
+        characterImage={characterData.characterImage}
         characterName={characterData.name}
         characterClass={`${characterData.characterClass} (${characterData.subclass}) - Nível ${characterData.level}`}
         pvAtual={characterData.hp.current}
@@ -335,6 +316,7 @@ const SheetPage = () => {
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.menu}
+          contentContainerStyle={styles.menuContent}
         >
           {menuItems.map((item) => (
             <TouchableOpacity
@@ -359,7 +341,7 @@ const SheetPage = () => {
         </ScrollView>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {renderSection()}
       </ScrollView>
     </View>
@@ -369,50 +351,63 @@ const SheetPage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f2f5',
+    backgroundColor: '#0a0e27',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#0a0e27',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#9ca3af',
+    fontWeight: '500',
   },
   menuContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: '#1a1f3a',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#2d3653',
   },
   menu: {
     flexDirection: 'row',
-    paddingVertical: 10,
-    paddingHorizontal: 5,
+  },
+  menuContent: {
+    paddingHorizontal: 8,
+    paddingVertical: 12,
   },
   menuItem: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginHorizontal: 5,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginHorizontal: 4,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f2f5',
+    backgroundColor: '#0a0e27',
+    borderWidth: 1,
+    borderColor: '#2d3653',
   },
   menuItemActive: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#3b9dff',
+    borderColor: '#3b9dff',
   },
   menuItemIcon: {
     fontSize: 16,
-    marginRight: 5,
+    marginRight: 6,
   },
   menuItemText: {
     fontSize: 14,
-    color: '#333',
+    color: '#9ca3af',
+    fontWeight: '600',
   },
   menuItemTextActive: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: '#ffffff',
+    fontWeight: '700',
   },
   content: {
     flex: 1,
-    padding: 10,
+    padding: 16,
   },
 });
 

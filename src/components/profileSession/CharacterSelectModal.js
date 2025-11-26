@@ -14,12 +14,6 @@ const CharacterSelectModal = ({ characters, onClose }) => {
     return (
       <View style={styles.fullScreenContainer}>
         <SheetPage route={{ params: { id: selectedCharacter.id } }} />
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => setSelectedCharacter(null)}
-        >
-          <Text style={styles.backButtonText}>← Voltar</Text>
-        </TouchableOpacity>
       </View>
     );
   }

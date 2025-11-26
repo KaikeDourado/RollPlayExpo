@@ -1,17 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
-/**
- * @function PericiasProficienciasSection
- * @description Componente para exibir e editar perícias, proficiências e idiomas do personagem.
- * @param {object} skills - Objeto contendo os dados completos das perícias.
- * @param {number} proficiencyBonus - Bônus de proficiência do personagem.
- * @param {object} equipmentProficiencies - Objeto contendo proficiências em equipamentos. (Não usado diretamente, mas mantido para documentação)
- * @param {array} languages - Array de idiomas.
- * @param {object} treinamentoEProfEquip - Objeto com proficiências de equipamento formatadas (para exibição).
- * @param {boolean} editMode - Indica se a seção está em modo de edição.
- * @param {function} onSave - Função para salvar as alterações nas perícias (simulada).
- */
 const PericiasProficienciasSection = ({
   skills,
   proficiencyBonus,
@@ -21,9 +10,7 @@ const PericiasProficienciasSection = ({
   editMode,
   onSave,
 }) => {
-  const formatModificador = (mod) => {
-    return mod >= 0 ? `+${mod}` : `${mod}`;
-  };
+  const formatModificador = (mod) => (mod >= 0 ? `+${mod}` : `${mod}`);
 
   const skillLabels = {
     athletics: "Atletismo",
@@ -50,11 +37,6 @@ const PericiasProficienciasSection = ({
     if (editMode && onSave) {
       const skill = skills[skillKey];
       const newProficient = !skill.proficient;
-      
-      // Recalcula o bônus da perícia.
-      // O bônus no JSON é o valor final. Para recalcular, precisamos do mod do atributo.
-      // Assumindo que o `skill.bonus` é o valor atual, e o `skill.proficient` é o estado atual.
-      // O mod do atributo é: skill.bonus - (skill.proficient ? proficiencyBonus : 0)
       const attributeMod = skill.bonus - (skill.proficient ? proficiencyBonus : 0);
       const newBonus = newProficient ? attributeMod + proficiencyBonus : attributeMod;
 
@@ -70,7 +52,6 @@ const PericiasProficienciasSection = ({
     }
   };
 
-  // Mapeamento de atributos para exibição
   const attributeMap = {
     str: 'FOR',
     dex: 'DES',
@@ -81,56 +62,87 @@ const PericiasProficienciasSection = ({
   };
 
   return (
-    <View style={styles.sectionCard}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionIcon}>🎯</Text>
-        <Text style={styles.sectionTitle}>Perícias e Proficiências</Text>
+    <View>
+      {/* Card de Perícias */}
+      <View style={styles.card}>
+        <View style={styles.header}>
+          <Text style={styles.icon}>🎯</Text>
+          <Text style={styles.title}>Perícias</Text>
+        </View>
+
+        <View style={styles.profBonus}>
+          <Text style={styles.profLabel}>Bônus de Proficiência</Text>
+          <Text style={styles.profValue}>{formatModificador(proficiencyBonus)}</Text>
+        </View>
+
+        <View style={styles.skillsList}>
+          {Object.entries(skills).map(([key, skill]) => (
+            <TouchableOpacity
+              key={key}
+              style={styles.skillRow}
+              onPress={() => handleToggleProficiency(key)}
+              disabled={!editMode}
+            >
+              <View style={[styles.skillCheck, skill.proficient && styles.skillChecked]}>
+                {skill.proficient && <Text style={styles.checkMark}>✓</Text>}
+              </View>
+              <Text style={styles.skillBonus}>{formatModificador(skill.bonus)}</Text>
+              <Text style={styles.skillName}>{skillLabels[key]}</Text>
+              <Text style={styles.skillAttr}>({attributeMap[skill.ability]})</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
-      <View style={styles.bonusProficiencia}>
-        <Text>Bônus de Proficiência: </Text>
-        <Text style={styles.bonusValor}>{formatModificador(proficiencyBonus)}</Text>
-      </View>
+      {/* Card de Proficiências */}
+      <View style={styles.card}>
+        <View style={styles.header}>
+          <Text style={styles.icon}>🛠️</Text>
+          <Text style={styles.title}>Proficiências & Idiomas</Text>
+        </View>
 
-      <View style={styles.periciasList}>
-        {Object.entries(skills).map(([key, skill]) => (
-          <TouchableOpacity
-            key={key}
-            style={styles.periciaItem}
-            onPress={() => handleToggleProficiency(key)}
-            disabled={!editMode}
-          >
-            <Text style={styles.periciaProficiente}>{skill.proficient ? "●" : "○"}</Text>
-            <Text style={styles.periciaBonus}>{formatModificador(skill.bonus)}</Text>
-            <Text style={styles.periciaNome}>{skillLabels[key]}</Text>
-            <Text style={styles.periciaAtributo}>
-              ({attributeMap[skill.ability]})
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+        <View style={styles.profSection}>
+          <Text style={styles.profSectionTitle}>Armaduras</Text>
+          <View style={styles.profTags}>
+            {treinamentoEProfEquip.armadura.map((item, index) => (
+              <View key={index} style={styles.profTag}>
+                <Text style={styles.profTagText}>{item}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
 
-      <View style={styles.outrasProficiencias}>
-        <Text style={styles.outrasProficienciasTitle}>Outras Proficiências e Idiomas</Text>
-        <View style={styles.proficienciasContent}>
-          {/* Exibição de Proficiências de Equipamento */}
-          <Text style={styles.proficienciasText}>
-            <Text style={styles.proficienciasTextBold}>Armaduras:</Text> {treinamentoEProfEquip.armadura.join(', ')}
-          </Text>
-          <Text style={styles.proficienciasText}>
-            <Text style={styles.proficienciasTextBold}>Armas:</Text> {treinamentoEProfEquip.armas.join(', ')}
-          </Text>
-          <Text style={styles.proficienciasText}>
-            <Text style={styles.proficienciasTextBold}>Ferramentas:</Text> {treinamentoEProfEquip.ferramentas.join(', ')}
-          </Text>
-          
-          {/* Exibição de Idiomas */}
-          <Text style={styles.proficienciasText}>
-            <Text style={styles.proficienciasTextBold}>Idiomas:</Text> {languages.join(', ')}
-          </Text>
-          
-          {/* A edição de proficiências e idiomas é mais complexa e pode ser implementada com um modal ou TextInput grande em editMode */}
-          {/* Por enquanto, apenas exibimos. */}
+        <View style={styles.profSection}>
+          <Text style={styles.profSectionTitle}>Armas</Text>
+          <View style={styles.profTags}>
+            {treinamentoEProfEquip.armas.map((item, index) => (
+              <View key={index} style={styles.profTag}>
+                <Text style={styles.profTagText}>{item}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.profSection}>
+          <Text style={styles.profSectionTitle}>Ferramentas</Text>
+          <View style={styles.profTags}>
+            {treinamentoEProfEquip.ferramentas.map((item, index) => (
+              <View key={index} style={styles.profTag}>
+                <Text style={styles.profTagText}>{item}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.profSection}>
+          <Text style={styles.profSectionTitle}>Idiomas</Text>
+          <View style={styles.profTags}>
+            {languages.map((item, index) => (
+              <View key={index} style={[styles.profTag, styles.languageTag]}>
+                <Text style={styles.profTagText}>{item}</Text>
+              </View>
+            ))}
+          </View>
         </View>
       </View>
     </View>
@@ -138,102 +150,131 @@ const PericiasProficienciasSection = ({
 };
 
 const styles = StyleSheet.create({
-  sectionCard: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
+  card: {
+    backgroundColor: '#1a1f3a',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#2d3653',
   },
-  sectionHeader: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2d3653',
   },
-  sectionIcon: {
+  icon: {
     fontSize: 20,
     marginRight: 10,
   },
-  sectionTitle: {
+  title: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '700',
+    color: '#ffffff',
   },
-  bonusProficiencia: {
+  profBonus: {
+    backgroundColor: '#0a0e27',
+    borderRadius: 8,
+    padding: 12,
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  profLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#9ca3af',
+  },
+  profValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#3b9dff',
+  },
+  skillsList: {
+    gap: 4,
+  },
+  skillRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: '#0a0e27',
+    marginBottom: 4,
+  },
+  skillCheck: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#2d3653',
+    marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 15,
-    paddingVertical: 10,
-    backgroundColor: '#f0f8ff',
-    borderRadius: 5,
   },
-  bonusValor: {
+  skillChecked: {
+    backgroundColor: '#3b9dff',
+    borderColor: '#3b9dff',
+  },
+  checkMark: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  skillBonus: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#3b82f6',
-    marginLeft: 5,
-  },
-  periciasList: {
-    marginBottom: 20,
-  },
-  periciaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  periciaProficiente: {
-    fontSize: 16,
-    marginRight: 10,
-    color: '#3b82f6',
-  },
-  periciaBonus: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#555',
+    fontWeight: '700',
+    color: '#ffffff',
     width: 40,
     textAlign: 'center',
   },
-  periciaNome: {
+  skillName: {
     flex: 1,
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 10,
+    fontSize: 15,
+    color: '#ffffff',
+    marginLeft: 12,
+    fontWeight: '500',
   },
-  periciaAtributo: {
-    fontSize: 14,
-    color: '#777',
+  skillAttr: {
+    fontSize: 13,
+    color: '#6b7280',
+    fontWeight: '600',
   },
-  outrasProficiencias: {
-    marginTop: 10,
+  profSection: {
+    marginBottom: 16,
   },
-  outrasProficienciasTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+  profSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#9ca3af',
     marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  proficienciasContent: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    padding: 10,
+  profTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  profTag: {
+    backgroundColor: '#0a0e27',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: '#2d3653',
   },
-  proficienciasText: {
-    fontSize: 16,
-    color: '#555',
-    lineHeight: 24,
-    marginBottom: 5,
+  languageTag: {
+    borderColor: '#3b9dff',
   },
-  proficienciasTextBold: {
-    fontWeight: 'bold',
+  profTagText: {
+    fontSize: 14,
+    color: '#ffffff',
+    fontWeight: '500',
   },
 });
 

@@ -1,17 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { authApi } from '../../lib/auth';
-// Importe um ícone de dado para React Native, por exemplo, de '@expo/vector-icons'
-// import { MaterialCommunityIcons } from '@expo/vector-icons'; 
 
-/**
- * @function LoginForm
- * @description Componente de formulário de login para o aplicativo React Native.
- * Adaptado do projeto React original, convertendo elementos HTML para componentes React Native,
- * removendo lógica de backend (axios, localStorage/sessionStorage) e utilizando React Navigation
- * para navegação.
- */
 export default function LoginForm() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -23,7 +14,7 @@ export default function LoginForm() {
   const handleSubmit = async () => {
     setError('');
     setLoading(true);
-    
+
     if (!identifier || !password) {
       setLoading(false);
       return setError('Preencha email e senha');
@@ -42,17 +33,25 @@ export default function LoginForm() {
 
   return (
     <View style={styles.formContainer}>
+      {/* LOGO E TÍTULOS */}
       <View style={styles.header}>
-        {/* <MaterialCommunityIcons name="dice-d20" size={48} color="#3b82f6" /> */}
+        <Image
+          source={require('../../../assets/d20.png')}
+          style={{ width: 70, height: 70, marginBottom: 10 }}
+          resizeMode="contain"
+        />
+
         <Text style={styles.title}>Bem-vindo de volta!</Text>
         <Text style={styles.subtitle}>Entre para continuar sua aventura</Text>
       </View>
 
+      {/* INPUT EMAIL */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Email</Text>
         <TextInput
           style={styles.input}
           placeholder="seu.email@exemplo.com"
+          placeholderTextColor="#888"
           keyboardType="email-address"
           autoCapitalize="none"
           value={identifier}
@@ -60,37 +59,49 @@ export default function LoginForm() {
         />
       </View>
 
+      {/* INPUT SENHA */}
       <View style={styles.inputGroup}>
-        <View style={styles.passwordLabelContainer}>
+        <View style={styles.passwordRow}>
           <Text style={styles.label}>Senha</Text>
+
           <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
             <Text style={styles.forgotPassword}>Esqueceu a senha?</Text>
           </TouchableOpacity>
         </View>
+
         <TextInput
           style={styles.input}
           placeholder="••••••••"
+          placeholderTextColor="#888"
           secureTextEntry
           value={password}
           onChangeText={setPassword}
         />
       </View>
 
-      <TouchableOpacity style={styles.rememberMeContainer} onPress={() => setRemember(!remember)}>
-        <View style={[styles.checkbox, remember ? styles.checkboxChecked : null]} />
+      {/* CHECKBOX */}
+      <TouchableOpacity
+        style={styles.rememberMeContainer}
+        onPress={() => setRemember(!remember)}
+      >
+        <View style={[styles.checkbox, remember && styles.checkboxChecked]}>
+        </View>
         <Text style={styles.rememberMeText}>Lembrar de mim</Text>
       </TouchableOpacity>
 
+      {/* ERRO */}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
+      {/* BOTÃO */}
       <TouchableOpacity style={styles.loginButton} onPress={handleSubmit}>
         <Text style={styles.loginButtonText}>Entrar</Text>
       </TouchableOpacity>
 
+      {/* REGISTRO */}
       <View style={styles.registerContainer}>
-        <Text style={styles.registerText}>Não tem uma conta? </Text>
+        <Text style={styles.registerText}>Não tem uma conta?</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-          <Text style={styles.registerLink}>Registre-se</Text>
+          <Text style={styles.registerLink}> Registre-se</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -100,101 +111,110 @@ export default function LoginForm() {
 const styles = StyleSheet.create({
   formContainer: {
     width: '100%',
-    padding: 20,
   },
+
+  /* HEADER */
   header: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 40,
+    marginTop: -40,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 10,
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: '#FFFFFF',
     marginTop: 5,
   },
+
+  /* INPUTS */
   inputGroup: {
     marginBottom: 15,
   },
   label: {
     fontSize: 16,
-    color: '#333',
-    marginBottom: 5,
+    color: '#FFFFFF',
     fontWeight: '600',
+    marginBottom: 5,
   },
-  passwordLabelContainer: {
+  passwordRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 5,
   },
   forgotPassword: {
-    color: '#3b82f6',
+    color: '#3B82F6',
     fontSize: 14,
+    fontWeight: '600',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    height: 48,
+    borderRadius: 12,
     padding: 12,
     fontSize: 16,
-    backgroundColor: '#fff',
+    color: '#000',
   },
+
+  /* CHECKBOX */
   rememberMeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 25,
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 5,
+    width: 22,
+    height: 22,
+    borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#3b82f6',
-    marginRight: 10,
+    borderColor: '#3B82F6',
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 10,
   },
   checkboxChecked: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#3B82F6',
   },
   rememberMeText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    color: '#333',
   },
+
+  /* ERRO */
   errorText: {
     color: 'red',
     textAlign: 'center',
     marginBottom: 10,
   },
+
+  /* BOTÃO */
   loginButton: {
-    backgroundColor: '#3b82f6',
-    padding: 15,
-    borderRadius: 8,
+    backgroundColor: '#3B82F6',
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 20,
   },
   loginButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '700',
   },
+
+  /* REGISTRO */
   registerContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
   },
   registerText: {
     fontSize: 16,
-    color: '#666',
+    color: '#cccccc',
   },
   registerLink: {
     fontSize: 16,
-    color: '#3b82f6',
-    fontWeight: 'bold',
+    color: '#3B82F6',
+    fontWeight: '700',
   },
 });
-

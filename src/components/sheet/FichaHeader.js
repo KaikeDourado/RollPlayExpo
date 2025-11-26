@@ -1,32 +1,23 @@
-
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput, Alert } from 'react-native';
 
-/**
- * @function FichaHeader
- * @description Cabeçalho da ficha de personagem, com informações básicas e controle de PV.
- * Adaptado do projeto React original para React Native.
- * @param {string} characterImage - URL da imagem do personagem. (Não implementado no JSON)
- * @param {string} characterName - Nome do personagem.
- * @param {string} characterClass - Classe do personagem.
- * @param {number} pvAtual - Pontos de Vida atuais.
- * @param {number} pvTotal - Pontos de Vida totais.
- * @param {number} pvTemp - Pontos de Vida temporários.
- * @param {function} onEditToggle - Função para alternar o modo de edição.
- * @param {boolean} editMode - Indica se a ficha está em modo de edição.
- * @param {function} onHeal - Função para curar PV. (A ser implementada no SheetPage)
- * @param {function} onDamage - Função para causar dano. (A ser implementada no SheetPage)
- */
-const FichaHeader = ({ characterImage, characterName, characterClass, pvAtual, pvTotal, pvTemp, editMode, onEditToggle, onHeal, onDamage }) => {
-  // Funções onHeal e onDamage não foram passadas pelo SheetPage, mas mantemos a estrutura para futura implementação.
-  // Por enquanto, apenas simulamos a lógica de PV no SheetPage.
-  const onHealProp = onHeal || (() => console.log('onHeal não implementado'));
-  const onDamageProp = onDamage || (() => console.log('onDamage não implementado'));
+const FichaHeader = ({ 
+  characterImage, 
+  characterName, 
+  characterClass, 
+  pvAtual, 
+  pvTotal, 
+  pvTemp, 
+  editMode, 
+  onEditToggle, 
+  onHeal, 
+  onDamage 
+}) => {
   const [pvInputValue, setPvInputValue] = useState('');
 
   const handleHeal = () => {
     if (pvInputValue) {
-      onHealProp(parseInt(pvInputValue, 10));
+      onHeal(parseInt(pvInputValue, 10));
       setPvInputValue('');
     } else {
       Alert.alert('Erro', 'Por favor, insira um valor para curar.');
@@ -35,74 +26,92 @@ const FichaHeader = ({ characterImage, characterName, characterClass, pvAtual, p
 
   const handleDamage = () => {
     if (pvInputValue) {
-      onDamageProp(parseInt(pvInputValue, 10));
+      onDamage(parseInt(pvInputValue, 10));
       setPvInputValue('');
     } else {
       Alert.alert('Erro', 'Por favor, insira um valor para causar dano.');
     }
   };
 
+  // Calcula porcentagem de HP para barra de progresso
+  const hpPercentage = Math.max(0, Math.min(100, (pvAtual / pvTotal) * 100));
+  
+  // Define cor da barra baseado na porcentagem
+  const getHpColor = () => {
+    if (hpPercentage > 50) return '#10b981';
+    if (hpPercentage > 25) return '#f59e0b';
+    return '#ef4444';
+  };
+
   return (
     <View style={styles.fichaHeader}>
-      {/* Botão de Editar Ficha no canto superior direito */}
+      {/* Botão de Editar */}
       <TouchableOpacity style={styles.editButton} onPress={onEditToggle}>
-        <Text style={styles.editButtonText}>{editMode ? 'Salvar' : 'Editar'}</Text>
+        <Text style={styles.editButtonText}>{editMode ? '✓ Salvar' : '✎ Editar'}</Text>
       </TouchableOpacity>
 
-      <View style={styles.fichaTitle}>
-        <View style={styles.characterPortrait}>
-          <View style={styles.portraitPlaceholder}>
+      {/* Informações do Personagem */}
+      <View style={styles.characterInfo}>
+        <View style={styles.portraitContainer}>
+          <View style={styles.portraitWrapper}>
             {characterImage ? (
               <Image source={{ uri: characterImage }} style={styles.portraitImage} />
             ) : (
-              <Text style={styles.portraitIcon}>👤</Text>
+              <View style={styles.portraitPlaceholder}>
+                <Text style={styles.portraitIcon}>👤</Text>
+              </View>
             )}
           </View>
-          {editMode && (
-            <TouchableOpacity style={styles.uploadPortraitBtn} onPress={() => Alert.alert('Upload', 'Funcionalidade de upload de imagem a ser implementada.')}>
-              <Text style={styles.uploadPortraitBtnText}>Alterar Imagem</Text>
-            </TouchableOpacity>
-          )}
         </View>
-        <View>
+
+        <View style={styles.characterDetails}>
           <Text style={styles.characterName}>{characterName}</Text>
           <Text style={styles.characterClass}>{characterClass}</Text>
         </View>
       </View>
 
-      {/* Bloco de Pontos de Vida */}
-      <View style={styles.pvBlock}>
-        {/* Coluna esquerda: Botões e input */}
-        <View style={styles.pvControls}>
-          <TouchableOpacity style={[styles.pvButton, styles.healButton]} onPress={handleHeal}>
-            <Text style={styles.pvButtonText}>Curar</Text>
-          </TouchableOpacity>
+      {/* HP Section */}
+      <View style={styles.hpSection}>
+        <View style={styles.hpHeader}>
+          <Text style={styles.hpLabel}>PONTOS DE VIDA</Text>
+          <View style={styles.hpValues}>
+            <Text style={styles.hpCurrent}>{pvAtual}</Text>
+            <Text style={styles.hpSeparator}>/</Text>
+            <Text style={styles.hpMax}>{pvTotal}</Text>
+          </View>
+        </View>
+
+        {/* Barra de HP */}
+        <View style={styles.hpBarContainer}>
+          <View style={[styles.hpBar, { width: `${hpPercentage}%`, backgroundColor: getHpColor() }]} />
+        </View>
+
+        {/* HP Temporário */}
+        {pvTemp > 0 && (
+          <View style={styles.tempHpContainer}>
+            <Text style={styles.tempHpLabel}>PV Temporário:</Text>
+            <Text style={styles.tempHpValue}>+{pvTemp}</Text>
+          </View>
+        )}
+
+        {/* Controles de HP */}
+        <View style={styles.hpControls}>
           <TextInput
-            style={styles.pvInput}
+            style={styles.hpInput}
             keyboardType="numeric"
             placeholder="Valor"
+            placeholderTextColor="#6b7280"
             value={pvInputValue}
             onChangeText={setPvInputValue}
           />
-          <TouchableOpacity style={[styles.pvButton, styles.damageButton]} onPress={handleDamage}>
-            <Text style={styles.pvButtonText}>Dano</Text>
+          
+          <TouchableOpacity style={[styles.hpButton, styles.healButton]} onPress={handleHeal}>
+            <Text style={styles.hpButtonText}>+ Curar</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Coluna direita: PV Atual, PV Total e PV Temporário */}
-        <View style={styles.pvValues}>
-          <View style={styles.pvItem}>
-            <Text style={styles.pvLabel}>PV Atual: </Text>
-            <Text style={styles.pvValue}>{pvAtual}</Text>
-          </View>
-          <View style={styles.pvItem}>
-            <Text style={styles.pvLabel}>PV Total: </Text>
-            <Text style={styles.pvValue}>{pvTotal}</Text>
-          </View>
-          <View style={styles.pvItem}>
-            <Text style={styles.pvLabel}>PV Temporário: </Text>
-            <Text style={styles.pvValue}>{pvTemp}</Text>
-          </View>
+          
+          <TouchableOpacity style={[styles.hpButton, styles.damageButton]} onPress={handleDamage}>
+            <Text style={styles.hpButtonText}>- Dano</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -111,127 +120,176 @@ const FichaHeader = ({ characterImage, characterName, characterClass, pvAtual, p
 
 const styles = StyleSheet.create({
   fichaHeader: {
-    backgroundColor: '#333',
-    padding: 15,
-    marginBottom: 15,
-    borderRadius: 8,
-    position: 'relative',
+    backgroundColor: '#1a1f3a',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2d3653',
   },
   editButton: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: '#555',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-    zIndex: 1,
+    top: 16,
+    right: 16,
+    backgroundColor: '#3b9dff',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    zIndex: 10,
   },
   editButtonText: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 14,
+    fontWeight: '700',
   },
-  fichaTitle: {
+  characterInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
+    marginTop: 8,
   },
-  characterPortrait: {
-    marginRight: 15,
-    alignItems: 'center',
+  portraitContainer: {
+    marginRight: 16,
   },
-  portraitPlaceholder: {
+  portraitWrapper: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#555',
-    justifyContent: 'center',
-    alignItems: 'center',
     overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: '#3b9dff',
   },
   portraitImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
+  portraitPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#2d3653',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   portraitIcon: {
     fontSize: 40,
-    color: '#ccc',
+    color: '#6b7280',
   },
-  uploadPortraitBtn: {
-    marginTop: 5,
-    backgroundColor: '#777',
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: 5,
-  },
-  uploadPortraitBtnText: {
-    color: '#fff',
-    fontSize: 12,
+  characterDetails: {
+    flex: 1,
   },
   characterName: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: '800',
+    color: '#ffffff',
+    marginBottom: 4,
   },
   characterClass: {
-    fontSize: 16,
-    color: '#ccc',
+    fontSize: 15,
+    color: '#9ca3af',
+    fontWeight: '500',
   },
-  pvBlock: {
+  hpSection: {
+    backgroundColor: '#0a0e27',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#2d3653',
+  },
+  hpHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#444',
-    padding: 10,
-    borderRadius: 8,
+    marginBottom: 12,
   },
-  pvControls: {
+  hpLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6b7280',
+    letterSpacing: 1,
+  },
+  hpValues: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'baseline',
   },
-  pvButton: {
+  hpCurrent: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+  hpSeparator: {
+    fontSize: 20,
+    color: '#6b7280',
+    marginHorizontal: 4,
+  },
+  hpMax: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#9ca3af',
+  },
+  hpBarContainer: {
+    height: 8,
+    backgroundColor: '#2d3653',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  hpBar: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  tempHpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingVertical: 8,
+    backgroundColor: '#1a1f3a',
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  tempHpLabel: {
+    fontSize: 13,
+    color: '#9ca3af',
+    marginRight: 8,
+  },
+  tempHpValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#3b9dff',
+  },
+  hpControls: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  hpInput: {
+    flex: 1,
+    backgroundColor: '#1a1f3a',
+    borderWidth: 1.5,
+    borderColor: '#2d3653',
+    borderRadius: 8,
     paddingHorizontal: 12,
-    borderRadius: 5,
-    marginHorizontal: 5,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#ffffff',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  hpButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   healButton: {
-    backgroundColor: '#28a745',
+    backgroundColor: '#10b981',
   },
   damageButton: {
-    backgroundColor: '#dc3545',
+    backgroundColor: '#ef4444',
   },
-  pvButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  pvInput: {
-    backgroundColor: '#fff',
-    width: 60,
-    height: 35,
-    borderRadius: 5,
-    textAlign: 'center',
-    marginHorizontal: 5,
-    fontSize: 16,
-  },
-  pvValues: {
-    alignItems: 'flex-end',
-  },
-  pvItem: {
-    flexDirection: 'row',
-    marginBottom: 3,
-  },
-  pvLabel: {
-    color: '#ccc',
+  hpButtonText: {
+    color: '#ffffff',
+    fontWeight: '700',
     fontSize: 14,
-  },
-  pvValue: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
   },
 });
 
 export default FichaHeader;
-

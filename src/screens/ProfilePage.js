@@ -1,17 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { authApi } from '../lib/auth';
 import { fetchSecure } from '../lib/fetchSecure';
 import { useAuth } from '../context/AuthContext';
 
-/**
- * @function ProfilePage
- * @description Tela de Perfil do usuário no aplicativo React Native.
- * Adaptada do projeto React original, convertendo elementos HTML para componentes React Native,
- * removendo a lógica de backend (axios, localStorage/sessionStorage) e adaptando a navegação.
- * A funcionalidade de edição de perfil é mantida, mas as chamadas de API são desativadas.
- */
 export default function ProfilePage() {
   const [user, setUser] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
@@ -23,11 +16,10 @@ export default function ProfilePage() {
   const navigation = useNavigation();
   const { logout } = useAuth();
 
-  const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
-  const [isEnterSessionModalOpen, setIsEnterSessionModalOpen] = useState(false);
-
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [imageUrlInput, setImageUrlInput] = useState('');
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -35,123 +27,56 @@ export default function ProfilePage() {
       setError('');
       try {
         const currentUser = authApi.getCurrentUser();
-        
+
         if (!currentUser) {
           throw new Error('Usuário não autenticado');
         }
 
-        // Dados do usuário do Firebase (não precisa fazer requisição)
+        // Buscar dados completos do usuário no backend
+        const userRes = await fetchSecure(
+          `https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/users/token`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${authApi.getIdToken()}`,
+            },
+          }
+        )
+        const response = await userRes.json();
+
+        // Os dados do usuário estão dentro de response.data
+        const userDataFromBackend = response.data || {};
+        console.log('Dados do usuário obtidos do backend:', userDataFromBackend);
+
+        // Mesclar dados do Firebase com dados do backend
         const userData = {
           uid: currentUser.uid,
-          displayName: currentUser.displayName || 'Usuário',
-          email: currentUser.email,
-          title: 'Mestre de RPG',
-          bio: 'Um mestre experiente em D&D 5e',
-          photoURL: currentUser.photoURL,
+          displayName: userDataFromBackend.displayName || currentUser.displayName,
+          email: userDataFromBackend.email || currentUser.email,
+          title: userDataFromBackend.title || '',
+          bio: userDataFromBackend.bio || '',
+          userPhoto: userDataFromBackend.userPhoto || currentUser.userPhoto,
           createdAt: new Date(currentUser.metadata?.creationTime).toISOString() || new Date().toISOString(),
-          charactersCount: 3,
         };
 
         setUser(userData);
         console.log('User data loaded:', userData);
         setEditData(userData);
-        
-        // Se você precisa buscar campanhas e personagens do seu backend, use fetchSecure:
-// Buscar campanhas
-        try {
-          console.log('Buscando campanhas para o usuário:', userData.uid);
-          
-          const response = await fetchSecure(
-            `https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/campaigns/user/${userData.uid}`,
-            { method: 'GET' }
-          );
-          
-          console.log('Status da resposta de campanhas:', response.status);
-          
-          if (response.ok) {
-            const campaignsData = await response.json();
-            console.log('Campanhas carregadas com sucesso:', campaignsData);
-            
-            // Verifica se é um array e tem dados
-            if (Array.isArray(campaignsData) && campaignsData.length > 0) {
-              setCampaigns(campaignsData);
-            } else if (campaignsData && campaignsData.campaigns && Array.isArray(campaignsData.campaigns)) {
-              // Se a resposta vem com a estrutura { campaigns: [...] }
-              setCampaigns(campaignsData.campaigns);
-            } else {
-              console.warn('Resposta de campanhas vazia');
-              setCampaigns([]);
-            }
-          } else {
-            console.warn('Erro ao carregar campanhas - Status:', response.status);
-            setCampaigns([]);
-          }
-        } catch (err) {
-          console.warn('Erro ao buscar campanhas:', err.message);
-          setCampaigns([]);
-        }
+
+        // Buscar campanhas
+        const campaignsRes = await fetchSecure(`https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/campaigns/user/${userData.uid}`);
+        const campaignsData = await campaignsRes.json();
+        setCampaigns(Array.isArray(campaignsData) ? campaignsData : campaignsData.campaigns || []);
 
         // Buscar personagens
-        try {
-          console.log('Buscando personagens para o usuário:', userData.uid);
-          
-          const response = await fetchSecure(
-            `https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/sheets/user/${userData.uid}`,
-            { method: 'GET' }
-          );
-          
-          console.log('Status da resposta de personagens:', response.status);
-          
-          if (response.ok) {
-            const charactersData = await response.json();
-            console.log('Personagens carregados com sucesso:', charactersData);
-            
-            // Verifica se é um array e tem dados
-            if (Array.isArray(charactersData) && charactersData.length > 0) {
-              setCharacters(charactersData);
-            } else if (charactersData && charactersData.sheets && Array.isArray(charactersData.sheets)) {
-              // Se a resposta vem com a estrutura { sheets: [...] }
-              setCharacters(charactersData.sheets);
-            } else {
-              console.warn('Resposta de personagens vazia');
-              setCharacters([]);
-            }
-          } else {
-            console.warn('Erro ao carregar personagens - Status:', response.status);
-            setCharacters([]);
-          }
-        } catch (err) {
-          console.warn('Erro ao buscar personagens:', err.message);
-          setCharacters([]);
-        }
+        const charactersRes = await fetchSecure(`https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/sheets/user/${userData.uid}`);
+        const charactersData = await charactersRes.json();
+        setCharacters(Array.isArray(charactersData) ? charactersData : charactersData.sheets || []);
 
       } catch (err) {
         console.error('Erro ao buscar dados do usuário:', err.message);
         setError('Não foi possível carregar os dados do usuário.');
-        
-        // Mesmo em caso de erro, mostrar dados padrão
-        if (authApi.getCurrentUser()) {
-          const currentUser = authApi.getCurrentUser();
-          const userData = {
-            displayName: currentUser.displayName || 'Usuário',
-            email: currentUser.email,
-            title: 'Mestre de RPG',
-            bio: 'Um mestre experiente em D&D 5e',
-            photoURL: currentUser.photoURL,
-            createdAt: new Date().toISOString(),
-          };
-          setUser(userData);
-          setEditData(userData);
-          setCampaigns([
-            { id: '1', name: 'A Lenda de Eldoria' },
-            { id: '2', name: 'As Ruínas de Thandor' },
-          ]);
-          setCharacters([
-            { id: 'c1', name: 'Gandalf, o Cinzento' },
-            { id: 'c2', name: 'Legolas, o Arqueiro' },
-            { id: 'c3', name: 'Gimli, o Anão' },
-          ]);
-        }
+
       } finally {
         setLoading(false);
       }
@@ -160,17 +85,29 @@ export default function ProfilePage() {
     fetchUserData();
   }, []);
 
+  const handleImageSave = () => {
+    if (imageUrlInput && imageUrlInput.startsWith('http')) {
+      setEditData(prev => ({ ...prev, userPhoto: imageUrlInput }));
+    }
+    setModalVisible(false);
+    setImageUrlInput('');
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color="#3b9dff" />
         <Text style={styles.loadingText}>Carregando perfil...</Text>
       </View>
     );
   }
 
   if (!user) {
-    return <Text style={styles.errorText}>Usuário não encontrado.</Text>;
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Usuário não encontrado.</Text>
+      </View>
+    );
   }
 
   const campaignsCount = campaigns.length;
@@ -202,16 +139,15 @@ export default function ProfilePage() {
 
     setSaving(true);
     try {
-      // Se você quiser salvar no backend, use fetchSecure:
-      // const response = await fetchSecure(
-      //   'https://sua-api.com/user/update',
-      //   {
-      //     method: 'PUT',
-      //     body: JSON.stringify(editData)
-      //   }
-      // );
-      // const result = await response.json();
-      
+      const response = await fetchSecure(
+        `https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/users/${user.uid}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(editData)
+        }
+      );
+      const result = await response.json();
+
       setUser(editData);
       setEditing(false);
       Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
@@ -225,535 +161,482 @@ export default function ProfilePage() {
   const handleLogout = async () => {
     try {
       await logout();
-      // O logout automático redireciona para a tela de login
     } catch (err) {
       Alert.alert('Erro', 'Falha ao sair. Tente novamente.');
       console.error('Logout error:', err);
     }
   };
 
-  const handleCreateCharacter = () => {
-    Alert.alert('Funcionalidade', 'Criar personagem será implementado com a integração de backend.');
-  };
-
-  const handleOpenSessionModal = () => setIsSessionModalOpen(true);
-  const handleCloseSessionModal = () => setIsSessionModalOpen(false);
-  const handleOpenEnterSessionModal = () => setIsEnterSessionModalOpen(true);
-  const handleCloseEnterSessionModal = () => setIsEnterSessionModalOpen(false);
-
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.sidebar}>
-        <View style={styles.imageContainer}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Profile Header */}
+      <View style={styles.header}>
+        <View style={styles.profileImageContainer}>
           <Image
-            source={editData?.photoURL ? { uri: editData.photoURL } : require("../../assets/default-profile-img.png")}
+            source={editData?.userPhoto ? { uri: editData.userPhoto } : require("../../assets/default-profile-img.png")}
             style={styles.profileImage}
           />
           {editing && (
-            <TouchableOpacity style={styles.editProfileImage} onPress={() => Alert.alert('Upload de Imagem', 'Funcionalidade de upload de imagem a ser implementada.')}>
-              <Text style={styles.editProfileImageText}>✎</Text>
+            <TouchableOpacity
+              style={styles.editImageButton}
+              onPress={() => setModalVisible(true)}
+            >
+              <Text style={styles.editImageIcon}>📷</Text>
             </TouchableOpacity>
           )}
         </View>
 
-        <View style={styles.profileInfo}>
+        {editing ? (
+          <View style={styles.editNameSection}>
+            <TextInput
+              style={styles.input}
+              value={editData.displayName || ''}
+              onChangeText={(text) => handleChange('displayName', text)}
+              placeholder="Nome"
+              placeholderTextColor="#6b7280"
+            />
+          </View>
+        ) : (
+          <>
+            <Text style={styles.userName}>{user.displayName}</Text>
+            <Text style={styles.userEmail}>{user.email}</Text>
+          </>
+        )}
+      </View>
+
+      {/* Content */}
+      <View style={styles.content}>
+        {/* Título */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>TÍTULO</Text>
           {editing ? (
-            <>
-              <TextInput
-                style={styles.input}
-                value={editData.displayName || ''}
-                onChangeText={(text) => handleChange('displayName', text)}
-                placeholder="Nome"
-              />
-              <TextInput
-                style={styles.input}
-                value={editData.title || ''}
-                onChangeText={(text) => handleChange('title', text)}
-                placeholder="Título"
-              />
-            </>
+            <TextInput
+              style={styles.input}
+              value={editData.title || ''}
+              onChangeText={(text) => handleChange('title', text)}
+              placeholder="Ex: Mestre de RPG, Aventureiro..."
+              placeholderTextColor="#6b7280"
+            />
           ) : (
-            <>
-              <Text style={styles.profileName}>{user.displayName}</Text>
-              <Text style={styles.profileTitle}>{user.title || 'MESTRE DE RPG'}</Text>
-            </>
+            <Text style={styles.sectionValue}>
+              {user.title || 'Nenhum título cadastrado'}
+            </Text>
           )}
         </View>
 
-        <View style={styles.profileBio}>
-          <Text style={styles.bioTitle}>BIO</Text>
+        {/* Bio */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>BIOGRAFIA</Text>
           {editing ? (
             <TextInput
               style={[styles.input, styles.bioInput]}
               value={editData.bio || ''}
               onChangeText={(text) => handleChange('bio', text)}
-              placeholder="Biografia"
+              placeholder="Conte um pouco sobre você..."
+              placeholderTextColor="#6b7280"
               multiline
-              numberOfLines={3}
+              numberOfLines={4}
             />
           ) : (
-            <Text style={styles.bioText}>{user.bio || 'Nenhuma biografia cadastrada.'}</Text>
+            <Text style={styles.sectionValue}>
+              {user.bio || 'Nenhuma biografia cadastrada ainda.'}
+            </Text>
           )}
         </View>
 
-        <View style={styles.profileStats}>
-          <Text style={styles.statItem}>🎲 {campaignsCount} CAMPANHAS CRIADAS</Text>
-          <Text style={styles.statItem}>🛡️ {charactersCount} PERSONAGENS CRIADOS</Text>
-          <Text style={styles.statItem}>📅 MEMBRO DESDE {memberYear}</Text>
-        </View>
-
-        {error && <Text style={styles.errorMessage}>{error}</Text>}
-
-        <View style={styles.profileActions}>
-          {editing ? (
-            <>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSaveClick} disabled={saving}>
-                <Text style={styles.buttonText}>{saving ? 'SALVANDO...' : 'SALVAR'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.cancelButton, { marginLeft: 10 }]} onPress={handleCancelClick}>
-                <Text style={styles.buttonText}>CANCELAR</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <TouchableOpacity style={styles.editButton} onPress={handleEditClick}>
-                <Text style={styles.buttonText}>EDITAR PERFIL</Text>
-              </TouchableOpacity>
-
-              {/* Botão de Sair adicionado */}
-              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                <Text style={styles.logoutButtonText}>SAIR</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      </View>
-
-      <View style={styles.mainContent}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>MINHAS CAMPANHAS</Text>
-          <TouchableOpacity style={styles.createButton} onPress={handleOpenSessionModal}>
-            <Text style={styles.createButtonText}>+ CRIAR CAMPANHA</Text>
-          </TouchableOpacity>
-        </View>
-        
-        {campaigns.length > 0 ? (
-          <View style={styles.campaignList}>
-            {campaigns.map((campaign) => (
-              <TouchableOpacity
-                key={campaign.id || campaign._id}
-                style={styles.campaignItem}
-                onPress={() => {
-                  console.log('Navegando para campanha:', campaign);
-                  navigation.navigate('ProfileSession', { 
-                    campaignUid: campaign.id || campaign._id,
-                    campaignData: campaign
-                  });
-                }}
-              >
-                <View style={styles.campaignItemContent}>
-                  <Text style={styles.campaignItemName}>{campaign.name || campaign.title}</Text>
-                  {campaign.description && (
-                    <Text style={styles.campaignItemDescription}>{campaign.description.substring(0, 50)}...</Text>
-                  )}
-                </View>
-                <Text style={styles.campaignArrow}>→</Text>
-              </TouchableOpacity>
-            ))}
+        {/* Stats */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statBox}>
+            <Text style={styles.statIcon}>🎲</Text>
+            <Text style={styles.statNumber}>{campaignsCount}</Text>
+            <Text style={styles.statLabel}>Campanhas</Text>
           </View>
-        ) : (
-          <Text style={styles.noItemsText}>Nenhuma campanha criada ainda.</Text>
+
+          <View style={styles.statBox}>
+            <Text style={styles.statIcon}>🛡️</Text>
+            <Text style={styles.statNumber}>{charactersCount}</Text>
+            <Text style={styles.statLabel}>Personagens</Text>
+          </View>
+        </View>
+
+        {/* Member Since */}
+        <View style={styles.memberBox}>
+          <Text style={styles.memberIcon}>📅</Text>
+          <Text style={styles.memberText}>Membro desde {memberYear}</Text>
+        </View>
+
+        {/* Error Message */}
+        {error && (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorMessage}>⚠️ {error}</Text>
+          </View>
         )}
 
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>MEUS PERSONAGENS</Text>
-          <TouchableOpacity style={styles.createButton} onPress={handleCreateCharacter}>
-            <Text style={styles.createButtonText}>+ CRIAR PERSONAGEM</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.characterGrid}>
-          {characters.length > 0 ? (
-            characters.map((character) => (
-              <TouchableOpacity key={character.id} style={styles.characterCard} onPress={() => Alert.alert('Personagem', `Navegar para ${character.name}`)}>
-                <Image source={require("../../assets/sheet-generic-img.png")} style={styles.characterImage} />
-                <Text style={styles.characterName}>{character.name}</Text>
-              </TouchableOpacity>
-            ))
-          ) : (
-            <Text style={styles.noItemsText}>Nenhum personagem criado ainda.</Text>
-          )}
-        </View>
+        {/* Action Buttons */}
+        {editing ? (
+          <View style={styles.buttonsContainer}>
+            <TouchableOpacity
+              style={[styles.button, styles.saveButton]}
+              onPress={handleSaveClick}
+              disabled={saving}
+            >
+              <Text style={styles.buttonText}>
+                {saving ? 'SALVANDO...' : 'SALVAR'}
+              </Text>
+            </TouchableOpacity>
 
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>ENTRAR EM SESSÃO</Text>
-          <TouchableOpacity style={styles.enterSessionButton} onPress={handleOpenEnterSessionModal}>
-            <Text style={styles.enterSessionButtonText}>ENTRAR EM SESSÃO</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={[styles.button, styles.cancelButton]}
+              onPress={handleCancelClick}
+            >
+              <Text style={styles.buttonTextSecondary}>CANCELAR</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.buttonsContainer}>
+            <TouchableOpacity
+              style={[styles.button, styles.editButton]}
+              onPress={handleEditClick}
+            >
+              <Text style={styles.buttonText}>EDITAR PERFIL</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.button, styles.logoutButton]}
+              onPress={handleLogout}
+            >
+              <Text style={styles.buttonTextSecondary}>SAIR</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
-      {/* Modals para criar/entrar em sessão - apenas placeholders */}
-      {isSessionModalOpen && <SessionModal onClose={handleCloseSessionModal} />}
-      {isEnterSessionModalOpen && <EnterSessionModal onClose={handleCloseEnterSessionModal} />}
+      {/* Modal de edição de imagem */}
+      <Modal visible={modalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Alterar Foto de Perfil</Text>
+            <Text style={styles.modalSubtitle}>Digite a URL da imagem</Text>
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder="https://exemplo.com/imagem.jpg"
+              placeholderTextColor="#6b7280"
+              value={imageUrlInput}
+              onChangeText={setImageUrlInput}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalSaveButton]}
+                onPress={handleImageSave}
+              >
+                <Text style={styles.buttonText}>SALVAR</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.buttonTextSecondary}>CANCELAR</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
 
-// Componentes de Modal (placeholders)
-const SessionModal = ({ onClose }) => (
-  <View style={modalStyles.overlay}>
-    <View style={modalStyles.modalContainer}>
-      <Text style={modalStyles.modalTitle}>Criar Nova Campanha</Text>
-      <Text>Formulário de criação de campanha aqui...</Text>
-      <TouchableOpacity onPress={onClose} style={modalStyles.closeButton}>
-        <Text style={modalStyles.closeButtonText}>Fechar</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-);
-
-const EnterSessionModal = ({ onClose }) => (
-  <View style={modalStyles.overlay}>
-    <View style={modalStyles.modalContainer}>
-      <Text style={modalStyles.modalTitle}>Entrar em Sessão</Text>
-      <Text>Formulário para entrar em sessão aqui...</Text>
-      <TouchableOpacity onPress={onClose} style={modalStyles.closeButton}>
-        <Text style={modalStyles.closeButtonText}>Fechar</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-);
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f2f5',
+    backgroundColor: "#0a0e27",
   },
+
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f0f2f5',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#0a0e27",
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: 16,
     fontSize: 16,
-    color: '#333',
+    color: "#9ca3af",
+    fontWeight: "500",
+  },
+
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#0a0e27",
+    padding: 20,
   },
   errorText: {
-    color: 'red',
-    textAlign: 'center',
-    padding: 20,
     fontSize: 16,
+    color: "#ef4444",
+    textAlign: "center",
   },
-  errorMessage: {
-    color: '#dc3545',
-    marginBottom: 10,
-    textAlign: 'center',
-    fontSize: 14,
+
+  /* HEADER */
+  header: {
+    alignItems: "center",
+    paddingTop: 40,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
   },
-  sidebar: {
-    backgroundColor: '#fff',
-    padding: 20,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  imageContainer: {
-    position: 'relative',
+
+  profileImageContainer: {
+    position: "relative",
     marginBottom: 20,
   },
   profileImage: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    borderWidth: 3,
-    borderColor: '#3b82f6',
+    borderWidth: 4,
+    borderColor: "#3b9dff",
   },
-  editProfileImage: {
-    position: 'absolute',
+  editImageButton: {
+    position: "absolute",
     bottom: 0,
     right: 0,
-    backgroundColor: '#3b82f6',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#3b9dff",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#0a0e27",
   },
-  editProfileImageText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  profileInfo: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  profileName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  profileTitle: {
+  editImageIcon: {
     fontSize: 16,
-    color: '#666',
-    marginTop: 5,
   },
+
+  editNameSection: {
+    width: "100%",
+    marginBottom: 8,
+  },
+
+  userName: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#ffffff",
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  userEmail: {
+    fontSize: 15,
+    color: "#9ca3af",
+    textAlign: "center",
+  },
+
+  /* CONTENT */
+  content: {
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+
+  /* SECTIONS */
+  section: {
+    marginBottom: 24,
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#6b7280",
+    marginBottom: 10,
+    letterSpacing: 1,
+  },
+  sectionValue: {
+    fontSize: 16,
+    color: "#ffffff",
+    lineHeight: 24,
+  },
+
+  /* INPUT */
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 10,
+    backgroundColor: "#1a1f3a",
+    borderWidth: 1.5,
+    borderColor: "#2d3653",
+    borderRadius: 12,
+    padding: 14,
     fontSize: 16,
-    width: '100%',
-    marginBottom: 10,
-    backgroundColor: '#fff',
-  },
-  profileBio: {
-    width: '100%',
-    marginBottom: 20,
-  },
-  bioTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  bioText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
+    color: "#ffffff",
   },
   bioInput: {
-    height: 80,
-    textAlignVertical: 'top',
+    height: 100,
+    textAlignVertical: "top",
   },
-  profileStats: {
+
+  /* STATS */
+  statsContainer: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 16,
+  },
+  statBox: {
+    flex: 1,
+    backgroundColor: "#1a1f3a",
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#2d3653",
+  },
+  statIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  statNumber: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#3b9dff",
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 13,
+    color: "#9ca3af",
+    fontWeight: "600",
+  },
+
+  /* MEMBER BOX */
+  memberBox: {
+    backgroundColor: "#1a1f3a",
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#2d3653",
   },
-  statItem: {
+  memberIcon: {
+    fontSize: 20,
+    marginRight: 10,
+  },
+  memberText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#9ca3af",
+  },
+
+  /* ERROR */
+  errorBox: {
+    backgroundColor: "#2d1f1f",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#ef4444",
+  },
+  errorMessage: {
+    color: "#ef4444",
     fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
+    fontWeight: "500",
+    textAlign: "center",
   },
-  profileActions: {
-    flexDirection: 'row',
-    marginTop: 10,
+
+  /* BUTTONS */
+  buttonsContainer: {
+    gap: 12,
   },
-  editButton: {
-    backgroundColor: '#3b82f6',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  saveButton: {
-    backgroundColor: '#28a745',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  cancelButton: {
-    backgroundColor: '#dc3545',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+  button: {
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
   buttonText: {
-    color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "700",
+    color: "#ffffff",
+    letterSpacing: 0.5,
   },
-  mainContent: {
-    padding: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    marginTop: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  createButton: {
-    backgroundColor: '#3b82f6',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-  },
-  createButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  campaignGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 30,
-  },
-  campaignCard: {
-    width: '48%',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    marginBottom: 15,
-    alignItems: 'center',
-    padding: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
-  },
-  campaignImage: {
-    width: '100%',
-    height: 100,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  campaignName: {
+  buttonTextSecondary: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
+    fontWeight: "700",
+    color: "#9ca3af",
+    letterSpacing: 0.5,
   },
-  characterGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 30,
+
+  editButton: {
+    backgroundColor: "#3b9dff",
   },
-  characterCard: {
-    width: '48%',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    marginBottom: 15,
-    alignItems: 'center',
-    padding: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
+  saveButton: {
+    backgroundColor: "#10b981",
   },
-  characterImage: {
-    width: '100%',
-    height: 100,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  characterName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-  },
-  noItemsText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    width: '100%',
-    marginTop: 10,
-  },
-  enterSessionButton: {
-    backgroundColor: '#6c757d',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-  },
-  enterSessionButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
+  cancelButton: {
+    backgroundColor: "transparent",
+    borderWidth: 1.5,
+    borderColor: "#2d3653",
   },
   logoutButton: {
-    backgroundColor: '#6c757d',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    marginLeft: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "transparent",
+    borderWidth: 1.5,
+    borderColor: "#2d3653",
   },
-  logoutButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-    campaignList: {
-    marginBottom: 30,
-  },
-  campaignItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingVertical: 15,
-    paddingHorizontal: 15,
-    marginBottom: 10,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#3b82f6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
-  },
-  campaignItemContent: {
-    flex: 1,
-  },
-  campaignItemName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  campaignItemDescription: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 4,
-  },
-  campaignArrow: {
-    fontSize: 18,
-    color: '#3b82f6',
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
-});
 
-const modalStyles = StyleSheet.create({
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    backgroundColor: '#fff',
+  /* MODAL */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.85)",
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
-    borderRadius: 10,
-    width: '80%',
+  },
+  modalContent: {
+    backgroundColor: "#1a1f3a",
+    borderRadius: 20,
+    padding: 24,
+    width: "100%",
     maxWidth: 400,
-    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: "#2d3653",
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
+    fontWeight: "bold",
+    color: "#ffffff",
+    marginBottom: 8,
+    textAlign: "center",
   },
-  closeButton: {
-    marginTop: 20,
-    backgroundColor: '#3b82f6',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+  modalSubtitle: {
+    fontSize: 14,
+    color: "#9ca3af",
+    marginBottom: 20,
+    textAlign: "center",
   },
-  closeButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  modalInput: {
+    backgroundColor: "#0a0e27",
+    borderWidth: 1.5,
+    borderColor: "#2d3653",
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: "#ffffff",
+    marginBottom: 20,
+  },
+  modalButtons: {
+    gap: 12,
+  },
+  modalButton: {
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  modalSaveButton: {
+    backgroundColor: "#3b9dff",
+  },
+  modalCancelButton: {
+    backgroundColor: "transparent",
+    borderWidth: 1.5,
+    borderColor: "#2d3653",
   },
 });

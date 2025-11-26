@@ -214,7 +214,7 @@ export default function ProfileSessionPage() {
         <TouchableOpacity onPress={() => setIsDrawerVisible(true)} style={styles.menuButton}>
           <Text style={styles.menuButtonText}>☰</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{sessionData?.name || 'Sessão'}</Text>
+        
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.exitText}>SAIR</Text>
         </TouchableOpacity>
