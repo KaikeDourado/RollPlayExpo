@@ -1,56 +1,413 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator } from 'react-native';
+import { fetchSecure } from '../../lib/fetchSecure';
 
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+const SessionDetailModal = ({ visible, onClose, session }) => {
+  if (!session) return null;
 
-/**
- * @function SessionsTab
- * @description Componente de aba para exibir as sessões de uma campanha no aplicativo React Native.
- * Adaptado do projeto React original, convertendo elementos HTML para componentes React Native
- * e ajustando o estilo para mobile. A lógica de backend para buscar sessões é removida.
- */
-const SessionsTab = () => {
-  // Dados de exemplo das sessões
-  const sessions = [
-    { id: 1, title: 'Sessão 1: O Início da Jornada', date: '10/09/2023', duration: '4h' },
-    { id: 2, title: 'Sessão 2: Encontro com o Dragão', date: '17/09/2023', duration: '5h' },
-    { id: 3, title: 'Sessão 3: A Caverna Misteriosa', date: '24/09/2023', duration: '3h' },
-  ];
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={modalStyles.overlay}>
+        <View style={modalStyles.modalContainer}>
+          {/* Header */}
+          <View style={modalStyles.modalHeader}>
+            <Text style={modalStyles.modalTitle}>📖 Detalhes da Sessão</Text>
+            <TouchableOpacity onPress={onClose} style={modalStyles.closeIconButton}>
+              <Text style={modalStyles.closeIconText}>✕</Text>
+            </TouchableOpacity>
+          </View>
 
-  const handleNewSession = () => {
-    Alert.alert('Nova Sessão', 'Funcionalidade de criar nova sessão a ser implementada com o backend.');
+          {/* Content */}
+          <ScrollView style={modalStyles.modalContent} showsVerticalScrollIndicator={false}>
+            <View style={modalStyles.detailSection}>
+              <Text style={modalStyles.sessionTitleLarge}>{session.title}</Text>
+            </View>
+
+            <View style={modalStyles.infoGrid}>
+              <View style={modalStyles.infoItem}>
+                <View style={modalStyles.infoIconContainer}>
+                  <Text style={modalStyles.infoIcon}>📅</Text>
+                </View>
+                <Text style={modalStyles.infoLabel}>Data</Text>
+                <Text style={modalStyles.infoValue}>{session.date}</Text>
+              </View>
+
+              <View style={modalStyles.infoItem}>
+                <View style={modalStyles.infoIconContainer}>
+                  <Text style={modalStyles.infoIcon}>⏱️</Text>
+                </View>
+                <Text style={modalStyles.infoLabel}>Duração</Text>
+                <Text style={modalStyles.infoValue}>{session.duration}</Text>
+              </View>
+            </View>
+
+            {session.notes && (
+              <View style={modalStyles.notesSection}>
+                <View style={modalStyles.notesSectionHeader}>
+                  <Text style={modalStyles.notesSectionIcon}>📝</Text>
+                  <Text style={modalStyles.notesSectionTitle}>Notas da Sessão</Text>
+                </View>
+                <Text style={modalStyles.notesText}>{session.notes}</Text>
+              </View>
+            )}
+
+            {session.highlights && session.highlights.length > 0 && (
+              <View style={modalStyles.highlightsSection}>
+                <View style={modalStyles.highlightsSectionHeader}>
+                  <Text style={modalStyles.highlightsSectionIcon}>⭐</Text>
+                  <Text style={modalStyles.highlightsSectionTitle}>Destaques</Text>
+                </View>
+                {session.highlights.map((highlight, index) => (
+                  <View key={index} style={modalStyles.highlightItem}>
+                    <Text style={modalStyles.highlightBullet}>•</Text>
+                    <Text style={modalStyles.highlightText}>{highlight}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </ScrollView>
+
+          {/* Footer */}
+          <View style={modalStyles.modalFooter}>
+            <TouchableOpacity onPress={onClose} style={modalStyles.closeButton}>
+              <Text style={modalStyles.closeButtonText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const AddSessionModal = ({ visible, onClose, onSessionAdded, campaignUid }) => {
+  const [title, setTitle] = useState('');
+  const [date, setDate] = useState('');
+  const [duration, setDuration] = useState('');
+  const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleCreate = async () => {
+    if (!title.trim()) {
+      Alert.alert('Erro', 'Por favor, insira um título para a sessão.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const sessionData = {
+        title: title.trim(),
+        date: date.trim() || new Date().toLocaleDateString('pt-BR'),
+        duration: duration.trim() || '0h',
+        notes: notes.trim(),
+        campaignId: campaignUid,
+        createdAt: new Date().toISOString()
+      };
+
+      const response = await fetchSecure(
+        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/sessions`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(sessionData)
+        }
+      );
+
+      if (response.ok) {
+        const newSession = await response.json();
+        Alert.alert('Sucesso', 'Sessão criada com sucesso!');
+        setTitle('');
+        setDate('');
+        setDuration('');
+        setNotes('');
+        onClose();
+        if (onSessionAdded) {
+          onSessionAdded(newSession);
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        Alert.alert('Erro', errorData.message || 'Não foi possível criar a sessão.');
+      }
+    } catch (err) {
+      console.error('Erro ao criar sessão:', err);
+      Alert.alert('Erro', 'Não foi possível criar a sessão. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleViewDetails = (sessionTitle) => {
-    Alert.alert('Ver Detalhes', `Navegar para os detalhes da sessão: ${sessionTitle}`);
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={modalStyles.overlay}>
+        <View style={modalStyles.modalContainer}>
+          <Text style={modalStyles.modalTitle}>📖 Nova Sessão</Text>
+          
+          <Text style={modalStyles.label}>Título da Sessão</Text>
+          <TextInput
+            style={modalStyles.input}
+            placeholder="Ex: A Caverna Misteriosa"
+            placeholderTextColor="#6b7280"
+            value={title}
+            onChangeText={setTitle}
+            maxLength={100}
+            editable={!loading}
+          />
+
+          <Text style={modalStyles.label}>Data</Text>
+          <TextInput
+            style={modalStyles.input}
+            placeholder="Ex: 25/11/2024"
+            placeholderTextColor="#6b7280"
+            value={date}
+            onChangeText={setDate}
+            maxLength={20}
+            editable={!loading}
+          />
+
+          <Text style={modalStyles.label}>Duração</Text>
+          <TextInput
+            style={modalStyles.input}
+            placeholder="Ex: 4h"
+            placeholderTextColor="#6b7280"
+            value={duration}
+            onChangeText={setDuration}
+            maxLength={10}
+            editable={!loading}
+          />
+
+          <Text style={modalStyles.label}>Notas (opcional)</Text>
+          <TextInput
+            style={[modalStyles.input, modalStyles.textArea]}
+            placeholder="Resumo da sessão..."
+            placeholderTextColor="#6b7280"
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+            maxLength={500}
+            editable={!loading}
+          />
+
+          <View style={modalStyles.buttonContainer}>
+            <TouchableOpacity 
+              onPress={handleCreate} 
+              style={[modalStyles.createButton, loading && { opacity: 0.6 }]}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Text style={modalStyles.createButtonText}>Criar</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={onClose} 
+              style={modalStyles.cancelButton}
+              disabled={loading}
+            >
+              <Text style={modalStyles.cancelButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const SessionsTab = ({ campaignUid }) => {
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedSession, setSelectedSession] = useState(null);
+
+  useEffect(() => {
+    fetchSessions();
+  }, [campaignUid]);
+
+  const fetchSessions = async () => {
+    if (!campaignUid) {
+      setError("UID da campanha não fornecido.");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetchSecure(
+        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/sessions`,
+        { method: 'GET' }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setSessions(data.sessions || []);
+      } else {
+        setError('Erro ao carregar sessões');
+      }
+    } catch (err) {
+      console.error('Erro ao buscar sessões:', err);
+      setError('Não foi possível carregar as sessões');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleSessionAdded = () => {
+    fetchSessions();
+  };
+
+  const handleViewDetails = (session) => {
+    setSelectedSession(session);
+    setDetailModalVisible(true);
+  };
+
+  const handleDeleteSession = async (sessionId) => {
+    Alert.alert(
+      'Confirmar Exclusão',
+      'Tem certeza de que deseja excluir esta sessão?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Excluir', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await fetchSecure(
+                `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/sessions/${sessionId}`,
+                { method: 'DELETE' }
+              );
+
+              if (response.ok) {
+                setSessions(sessions.filter(session => (session.id || session._id) !== sessionId));
+                Alert.alert('Sucesso', 'Sessão excluída com sucesso!');
+              } else {
+                Alert.alert('Erro', 'Não foi possível excluir a sessão.');
+              }
+            } catch (err) {
+              console.error('Erro ao excluir sessão:', err);
+              Alert.alert('Erro', 'Não foi possível excluir a sessão.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#3b9dff" />
+        <Text style={styles.loadingText}>Carregando sessões...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>SESSÕES</Text>
-        <TouchableOpacity style={styles.newSessionButton} onPress={handleNewSession}>
-          <Text style={styles.newSessionButtonText}>+ NOVA SESSÃO</Text>
+        <View>
+          <Text style={styles.title}>📖 Sessões</Text>
+          <Text style={styles.subtitle}>
+            {sessions.length} {sessions.length === 1 ? 'sessão' : 'sessões'} realizadas
+          </Text>
+        </View>
+        <TouchableOpacity 
+          style={styles.newSessionButton} 
+          onPress={() => setModalVisible(true)}
+        >
+          <Text style={styles.newSessionButtonIcon}>+</Text>
+          <Text style={styles.newSessionButtonText}>Nova</Text>
         </TouchableOpacity>
       </View>
-      
-      <ScrollView style={styles.sessionsList}>
-        {sessions.map(session => (
-          <View key={session.id} style={styles.sessionItem}>
-            <View style={styles.sessionInfoContainer}>
-              <Text style={styles.sessionItemTitle}>{session.title}</Text>
-              <View style={styles.sessionItemDetails}>
-                <Text style={styles.sessionDate}>Data: {session.date}</Text>
-                <Text style={styles.sessionDuration}>Duração: {session.duration}</Text>
+
+      {error ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>⚠️ {error}</Text>
+        </View>
+      ) : (
+        <ScrollView 
+          style={styles.sessionsList}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.sessionsListContent}
+        >
+          {sessions.length > 0 ? (
+            sessions.map((session, index) => (
+              <View
+                key={session.id || session._id}
+                style={styles.sessionCard}
+              >
+                {/* Session Number Badge */}
+                <View style={styles.sessionBadge}>
+                  <Text style={styles.sessionBadgeNumber}>{sessions.length - index}</Text>
+                </View>
+
+                {/* Session Content */}
+                <TouchableOpacity
+                  style={styles.sessionContent}
+                  onPress={() => handleViewDetails(session)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.sessionInfo}>
+                    <Text style={styles.sessionTitle}>{session.title}</Text>
+                    <View style={styles.sessionMeta}>
+                      <View style={styles.metaItem}>
+                        <Text style={styles.metaIcon}>📅</Text>
+                        <Text style={styles.metaText}>{session.date}</Text>
+                      </View>
+                      <View style={styles.metaItem}>
+                        <Text style={styles.metaIcon}>⏱️</Text>
+                        <Text style={styles.metaText}>{session.duration}</Text>
+                      </View>
+                    </View>
+                    {session.notes && (
+                      <Text style={styles.sessionPreview} numberOfLines={2}>
+                        {session.notes}
+                      </Text>
+                    )}
+                  </View>
+
+                  <View style={styles.sessionActions}>
+                    <Text style={styles.viewDetailsArrow}>›</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Delete Button */}
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => handleDeleteSession(session.id || session._id)}
+                >
+                  <Text style={styles.deleteButtonText}>🗑️</Text>
+                </TouchableOpacity>
               </View>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateIcon}>📖</Text>
+              <Text style={styles.emptyStateTitle}>Nenhuma sessão ainda</Text>
+              <Text style={styles.emptyStateText}>
+                Crie sua primeira sessão para começar a registrar suas aventuras!
+              </Text>
             </View>
-            <View style={styles.sessionActions}>
-              <TouchableOpacity style={styles.viewSessionButton} onPress={() => handleViewDetails(session.title)}>
-                <Text style={styles.viewSessionButtonText}>Ver Detalhes</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
+          )}
+        </ScrollView>
+      )}
+
+      <AddSessionModal 
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onSessionAdded={handleSessionAdded}
+        campaignUid={campaignUid}
+      />
+
+      <SessionDetailModal
+        visible={detailModalVisible}
+        onClose={() => setDetailModalVisible(false)}
+        session={selectedSession}
+      />
     </View>
   );
 };
@@ -58,84 +415,426 @@ const SessionsTab = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 10,
+    backgroundColor: '#0a0e27',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#0a0e27',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#9ca3af',
+    fontWeight: '500',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    padding: 20,
+    backgroundColor: '#1a1f3a',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2d3653',
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#9ca3af',
+    fontWeight: '500',
   },
   newSessionButton: {
-    backgroundColor: '#3b82f6',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3b9dff',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    gap: 6,
+  },
+  newSessionButtonIcon: {
+    fontSize: 18,
+    color: '#ffffff',
+    fontWeight: '700',
   },
   newSessionButtonText: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '700',
+  },
+  errorContainer: {
+    margin: 16,
+    backgroundColor: '#2d1f1f',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#ef4444',
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   sessionsList: {
     flex: 1,
   },
-  sessionItem: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 10,
+  sessionsListContent: {
+    padding: 16,
+    paddingBottom: 100,
+  },
+  sessionCard: {
+    backgroundColor: '#1a1f3a',
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#2d3653',
+    borderLeftWidth: 4,
+    borderLeftColor: '#3b9dff',
+    overflow: 'hidden',
+  },
+  sessionBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#0a0e27',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#3b9dff',
+    zIndex: 10,
+  },
+  sessionBadgeNumber: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#3b9dff',
+  },
+  sessionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    paddingLeft: 64,
+  },
+  sessionInfo: {
+    flex: 1,
+  },
+  sessionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  sessionMeta: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 8,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaIcon: {
+    fontSize: 14,
+  },
+  metaText: {
+    fontSize: 13,
+    color: '#9ca3af',
+    fontWeight: '500',
+  },
+  sessionPreview: {
+    fontSize: 13,
+    color: '#6b7280',
+    lineHeight: 18,
+  },
+  sessionActions: {
+    marginLeft: 12,
+  },
+  viewDetailsArrow: {
+    fontSize: 32,
+    color: '#3b9dff',
+    fontWeight: '300',
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#0a0e27',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2d3653',
+  },
+  deleteButtonText: {
+    fontSize: 16,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyStateIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+    opacity: 0.5,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyStateText: {
+    fontSize: 15,
+    color: '#9ca3af',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+});
+
+const modalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContainer: {
+    backgroundColor: '#1a1f3a',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    borderWidth: 1,
+    borderColor: '#2d3653',
+  },
+  modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1.41,
-    elevation: 2,
+    marginBottom: 20,
   },
-  sessionInfoContainer: {
-    flex: 1,
-    marginRight: 10,
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#ffffff',
   },
-  sessionItemTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
+  closeIconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#0a0e27',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2d3653',
   },
-  sessionItemDetails: {
+  closeIconText: {
+    fontSize: 18,
+    color: '#9ca3af',
+    fontWeight: '700',
+  },
+  modalContent: {
+    maxHeight: 400,
+  },
+  detailSection: {
+    marginBottom: 20,
+  },
+  sessionTitleLarge: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#ffffff',
+    lineHeight: 28,
+  },
+  infoGrid: {
     flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
   },
-  sessionDate: {
-    fontSize: 12,
-    color: '#666',
-    marginRight: 10,
+  infoItem: {
+    flex: 1,
+    backgroundColor: '#0a0e27',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2d3653',
   },
-  sessionDuration: {
-    fontSize: 12,
-    color: '#666',
+  infoIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1a1f3a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#3b9dff',
   },
-  sessionActions: {
-    // Estilos para os botões de ação, se houver mais de um
+  infoIcon: {
+    fontSize: 20,
   },
-  viewSessionButton: {
-    backgroundColor: '#6c757d',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+  infoLabel: {
+    fontSize: 11,
+    color: '#9ca3af',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
   },
-  viewSessionButtonText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
+  infoValue: {
+    fontSize: 14,
+    color: '#3b9dff',
+    fontWeight: '700',
+  },
+  notesSection: {
+    backgroundColor: '#0a0e27',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#2d3653',
+  },
+  notesSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  notesSectionIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  notesSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  notesText: {
+    fontSize: 14,
+    color: '#e5e7eb',
+    lineHeight: 22,
+  },
+  highlightsSection: {
+    backgroundColor: '#0a0e27',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#2d3653',
+  },
+  highlightsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  highlightsSectionIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  highlightsSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  highlightItem: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  highlightBullet: {
+    fontSize: 16,
+    color: '#3b9dff',
+    marginRight: 8,
+    fontWeight: '700',
+  },
+  highlightText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#e5e7eb',
+    lineHeight: 20,
+  },
+  modalFooter: {
+    marginTop: 20,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#9ca3af',
+    marginBottom: 8,
+    marginTop: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  input: {
+    backgroundColor: '#0a0e27',
+    borderWidth: 1.5,
+    borderColor: '#2d3653',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: '#ffffff',
+    fontWeight: '500',
+  },
+  textArea: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
+  createButton: {
+    flex: 1,
+    backgroundColor: '#3b9dff',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  createButtonText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#2d3653',
+  },
+  cancelButtonText: {
+    color: '#9ca3af',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  closeButton: {
+    backgroundColor: '#3b9dff',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });
 
 export default SessionsTab;
-

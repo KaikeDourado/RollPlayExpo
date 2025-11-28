@@ -1,157 +1,464 @@
-
-import React from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
-// Para ícones de dados, você pode usar @expo/vector-icons, por exemplo:
-// import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-/**
- * @function ChatTab
- * @description Componente de aba de chat para a sessão de RPG no aplicativo React Native.
- * Adaptado do projeto React original, convertendo elementos HTML para componentes React Native
- * e ajustando o estilo para mobile. Os ícones de dados são substituídos por texto simples
- * para simplificar a migração inicial.
- * @param {string} campaignUid O UID da campanha atual.
- */
-const ChatTab = ({ campaignUid }) => {
-  // Placeholder para mensagens do chat
-  const messages = [
-    { id: '1', sender: 'Mestre', content: 'Bem-vindos à sessão de hoje!' },
-    { id: '2', sender: 'Jogador 1', content: 'Estou pronto para a aventura!' },
-    { id: '3', sender: 'Jogador 2', content: 'Vou rolar um d20 para percepção.' },
-  ];
-
-  const handleDiceRoll = (diceType) => {
-    Alert.alert('Rolagem de Dado', `Você rolou um ${diceType}. Funcionalidade de rolagem a ser implementada.`);
-  };
-
-  const handleSendMessage = () => {
-    Alert.alert('Enviar Mensagem', 'Funcionalidade de envio de mensagem a ser implementada.');
-  };
-
-  return (
-    <View style={styles.container}>
-      <ScrollView style={styles.messagesContainer}>
-        {messages.map((message) => (
-          <View key={message.id} style={styles.messageItem}>
-            <Text style={styles.playerName}>{message.sender}:</Text>
-            <Text style={styles.messageContent}>{message.content}</Text>
-          </View>
-        ))}
-      </ScrollView>
-
-      <View style={styles.diceButtonsContainer}>
-        <DiceButton label="d4" onPress={() => handleDiceRoll('d4')} />
-        <DiceButton label="d6" onPress={() => handleDiceRoll('d6')} />
-        <DiceButton label="d8" onPress={() => handleDiceRoll('d8')} />
-        <DiceButton label="d10" onPress={() => handleDiceRoll('d10')} />
-        <DiceButton label="d12" onPress={() => handleDiceRoll('d12')} />
-        <DiceButton label="d20" onPress={() => handleDiceRoll('d20')} />
-        <DiceButton label="d100" onPress={() => handleDiceRoll('d100')} />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.chatInput}
-          placeholder="Digite sua mensagem..."
-          placeholderTextColor="#999"
-        />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-          <Text style={styles.sendButtonText}>Enviar</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-};
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { fetchSecure } from '../../lib/fetchSecure';
+import { authApi } from '../../lib/auth';
 
 const DiceButton = ({ label, onPress }) => (
-  <TouchableOpacity style={diceButtonStyles.button} onPress={onPress}>
-    {/* Em um projeto real, você usaria um ícone aqui, e.g., <MaterialCommunityIcons name="dice-d${label.substring(1)}" size={24} color="#fff" /> */}
-    <Text style={diceButtonStyles.icon}>{label}</Text>
+  <TouchableOpacity style={diceButtonStyles.button} onPress={onPress} activeOpacity={0.7}>
+    <View style={diceButtonStyles.iconContainer}>
+      <Text style={diceButtonStyles.icon}>🎲</Text>
+    </View>
     <Text style={diceButtonStyles.label}>{label}</Text>
   </TouchableOpacity>
 );
 
+const ChatTab = ({ campaignUid }) => {
+  const [messages, setMessages] = useState([]);
+  const [messageText, setMessageText] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const scrollViewRef = useRef(null);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const user = authApi.getCurrentUser();
+    setCurrentUser(user);
+    fetchMessages();
+  }, [campaignUid]);
+
+  const fetchMessages = async () => {
+    setLoading(true);
+    try {
+      const response = await fetchSecure(
+        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/chat`,
+        { method: 'GET' }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setMessages(data.messages || []);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar mensagens:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDiceRoll = async (diceType) => {
+    const diceNumber = parseInt(diceType.substring(1));
+    const result = Math.floor(Math.random() * diceNumber) + 1;
+    
+    const diceMessage = `🎲 rolou ${diceType} e tirou ${result}!`;
+    await sendMessage(diceMessage, 'dice');
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageText.trim()) return;
+    
+    await sendMessage(messageText.trim(), 'text');
+    setMessageText('');
+  };
+
+  const sendMessage = async (content, type = 'text') => {
+    if (!currentUser) return;
+
+    setSending(true);
+    try {
+      const messageData = {
+        content,
+        type,
+        senderId: currentUser.uid,
+        senderName: currentUser.displayName || 'Jogador',
+        campaignId: campaignUid,
+        timestamp: new Date().toISOString()
+      };
+
+      const response = await fetchSecure(
+        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/chat`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(messageData)
+        }
+      );
+
+      if (response.ok) {
+        const newMessage = await response.json();
+        setMessages(prev => [...prev, newMessage]);
+        
+        // Scroll para o final
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    } catch (err) {
+      console.error('Erro ao enviar mensagem:', err);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const renderMessage = (message) => {
+    const isCurrentUser = message.senderId === currentUser?.uid;
+    const isMaster = message.senderRole === 'master' || message.sender === 'Mestre';
+    const isDiceRoll = message.type === 'dice';
+
+    if (isDiceRoll) {
+      return (
+        <View key={message.id || message._id} style={styles.diceMessageContainer}>
+          <View style={styles.diceMessageBubble}>
+            <Text style={styles.diceMessageSender}>{message.senderName}</Text>
+            <Text style={styles.diceMessageContent}>{message.content}</Text>
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View 
+        key={message.id || message._id} 
+        style={[
+          styles.messageContainer,
+          isCurrentUser && styles.messageContainerRight
+        ]}
+      >
+        <View 
+          style={[
+            styles.messageBubble,
+            isCurrentUser && styles.messageBubbleRight,
+            isMaster && styles.messageBubbleMaster
+          ]}
+        >
+          {!isCurrentUser && (
+            <Text style={[
+              styles.senderName,
+              isMaster && styles.senderNameMaster
+            ]}>
+              {isMaster ? '👑 ' : ''}{message.senderName || message.sender}
+            </Text>
+          )}
+          <Text style={[
+            styles.messageContent,
+            isCurrentUser && styles.messageContentRight,
+            isMaster && styles.messageContentMaster
+          ]}>
+            {message.content}
+          </Text>
+          <Text style={[
+            styles.messageTime,
+            isCurrentUser && styles.messageTimeRight
+          ]}>
+            {message.timestamp ? new Date(message.timestamp).toLocaleTimeString('pt-BR', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            }) : ''}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#3b9dff" />
+        <Text style={styles.loadingText}>Carregando chat...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={100}
+    >
+      {/* Messages */}
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.messagesContainer}
+        contentContainerStyle={styles.messagesContent}
+        showsVerticalScrollIndicator={false}
+        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+      >
+        {messages.length > 0 ? (
+          messages.map(renderMessage)
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateIcon}>💬</Text>
+            <Text style={styles.emptyStateText}>Nenhuma mensagem ainda</Text>
+            <Text style={styles.emptyStateSubtext}>Seja o primeiro a enviar uma mensagem!</Text>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Dice Buttons */}
+      <View style={styles.diceSection}>
+        <Text style={styles.diceSectionTitle}>🎲 Rolar Dados</Text>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.diceButtonsContainer}
+        >
+          <DiceButton label="d4" onPress={() => handleDiceRoll('d4')} />
+          <DiceButton label="d6" onPress={() => handleDiceRoll('d6')} />
+          <DiceButton label="d8" onPress={() => handleDiceRoll('d8')} />
+          <DiceButton label="d10" onPress={() => handleDiceRoll('d10')} />
+          <DiceButton label="d12" onPress={() => handleDiceRoll('d12')} />
+          <DiceButton label="d20" onPress={() => handleDiceRoll('d20')} />
+          <DiceButton label="d100" onPress={() => handleDiceRoll('d100')} />
+        </ScrollView>
+      </View>
+
+      {/* Input */}
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.chatInput}
+          placeholder="Digite sua mensagem..."
+          placeholderTextColor="#6b7280"
+          value={messageText}
+          onChangeText={setMessageText}
+          multiline
+          maxLength={500}
+          editable={!sending}
+        />
+        <TouchableOpacity 
+          style={[styles.sendButton, sending && styles.sendButtonDisabled]} 
+          onPress={handleSendMessage}
+          disabled={sending || !messageText.trim()}
+          activeOpacity={0.7}
+        >
+          {sending ? (
+            <ActivityIndicator size="small" color="#ffffff" />
+          ) : (
+            <Text style={styles.sendButtonText}>➤</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
+  );
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 10,
+    backgroundColor: '#0a0e27',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#0a0e27',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#9ca3af',
+    fontWeight: '500',
   },
   messagesContainer: {
     flex: 1,
-    marginBottom: 10,
   },
-  messageItem: {
-    flexDirection: 'row',
-    marginBottom: 5,
+  messagesContent: {
+    padding: 16,
+    paddingBottom: 8,
   },
-  playerName: {
-    fontWeight: 'bold',
-    marginRight: 5,
-    color: '#333',
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyStateIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+    opacity: 0.5,
+  },
+  emptyStateText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#9ca3af',
+  },
+  messageContainer: {
+    marginBottom: 12,
+    alignItems: 'flex-start',
+  },
+  messageContainerRight: {
+    alignItems: 'flex-end',
+  },
+  messageBubble: {
+    backgroundColor: '#1a1f3a',
+    borderRadius: 16,
+    padding: 12,
+    maxWidth: '80%',
+    borderWidth: 1,
+    borderColor: '#2d3653',
+  },
+  messageBubbleRight: {
+    backgroundColor: '#3b9dff',
+    borderColor: '#3b9dff',
+  },
+  messageBubbleMaster: {
+    backgroundColor: '#7c3aed',
+    borderColor: '#7c3aed',
+  },
+  senderName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#3b9dff',
+    marginBottom: 4,
+  },
+  senderNameMaster: {
+    color: '#fbbf24',
   },
   messageContent: {
-    color: '#555',
+    fontSize: 15,
+    color: '#e5e7eb',
+    lineHeight: 20,
+  },
+  messageContentRight: {
+    color: '#ffffff',
+  },
+  messageContentMaster: {
+    color: '#ffffff',
+  },
+  messageTime: {
+    fontSize: 11,
+    color: '#6b7280',
+    marginTop: 4,
+    alignSelf: 'flex-end',
+  },
+  messageTimeRight: {
+    color: '#e0e7ff',
+  },
+  diceMessageContainer: {
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  diceMessageBubble: {
+    backgroundColor: '#0a0e27',
+    borderRadius: 12,
+    padding: 10,
+    paddingHorizontal: 16,
+    borderWidth: 2,
+    borderColor: '#3b9dff',
+    borderStyle: 'dashed',
+  },
+  diceMessageSender: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#3b9dff',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  diceMessageContent: {
+    fontSize: 14,
+    color: '#e5e7eb',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  diceSection: {
+    backgroundColor: '#1a1f3a',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#2d3653',
+  },
+  diceSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#9ca3af',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   diceButtonsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 10,
-    flexWrap: 'wrap',
+    gap: 8,
+    paddingRight: 16,
   },
   inputContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
+    padding: 16,
+    backgroundColor: '#1a1f3a',
     borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingTop: 10,
+    borderTopColor: '#2d3653',
+    gap: 12,
   },
   chatInput: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    backgroundColor: '#0a0e27',
+    borderWidth: 1.5,
+    borderColor: '#2d3653',
     borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    marginRight: 10,
-    fontSize: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: '#ffffff',
+    maxHeight: 100,
+    fontWeight: '500',
   },
   sendButton: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#3b9dff',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#3b9dff',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  sendButtonDisabled: {
+    opacity: 0.5,
   },
   sendButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    fontSize: 20,
+    color: '#ffffff',
+    fontWeight: '700',
   },
 });
 
 const diceButtonStyles = StyleSheet.create({
   button: {
-    backgroundColor: '#6c757d',
-    borderRadius: 8,
-    padding: 8,
-    margin: 4,
+    backgroundColor: '#0a0e27',
+    borderRadius: 12,
+    padding: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 60,
+    minWidth: 70,
+    borderWidth: 1.5,
+    borderColor: '#2d3653',
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1a1f3a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: '#3b9dff',
   },
   icon: {
     fontSize: 20,
-    color: '#fff',
-    fontWeight: 'bold',
   },
   label: {
-    fontSize: 12,
-    color: '#fff',
-    marginTop: 2,
+    fontSize: 13,
+    color: '#3b9dff',
+    fontWeight: '700',
   },
 });
 
 export default ChatTab;
-

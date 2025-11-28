@@ -7,13 +7,16 @@ const FichaHeader = ({
   characterClass, 
   pvAtual, 
   pvTotal, 
-  pvTemp, 
+  pvTemp,
+  hitDice,
+  deathSaves,
   editMode, 
   onEditToggle, 
   onHeal, 
   onDamage 
 }) => {
   const [pvInputValue, setPvInputValue] = useState('');
+  const [showDeathSaves, setShowDeathSaves] = useState(false);
 
   const handleHeal = () => {
     if (pvInputValue) {
@@ -42,6 +45,9 @@ const FichaHeader = ({
     if (hpPercentage > 25) return '#f59e0b';
     return '#ef4444';
   };
+
+  // Verifica se o personagem está em 0 HP
+  const isDying = pvAtual <= 0;
 
   return (
     <View style={styles.fichaHeader}>
@@ -94,6 +100,19 @@ const FichaHeader = ({
           </View>
         )}
 
+        {/* Dados de Vida */}
+        {hitDice && (
+          <View style={styles.hitDiceContainer}>
+            <Text style={styles.hitDiceLabel}>Dados de Vida</Text>
+            <View style={styles.hitDiceInfo}>
+              <Text style={styles.hitDiceValue}>
+                {hitDice.max - hitDice.spent}/{hitDice.max}
+              </Text>
+              <Text style={styles.hitDiceType}>{hitDice.type}</Text>
+            </View>
+          </View>
+        )}
+
         {/* Controles de HP */}
         <View style={styles.hpControls}>
           <TextInput
@@ -113,6 +132,47 @@ const FichaHeader = ({
             <Text style={styles.hpButtonText}>- Dano</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Testes de Morte (aparece quando HP = 0) */}
+        {isDying && deathSaves && (
+          <View style={styles.deathSavesContainer}>
+            <Text style={styles.deathSavesTitle}>⚠️ Testes de Morte</Text>
+            <View style={styles.deathSavesRow}>
+              <View style={styles.deathSavesSection}>
+                <Text style={styles.deathSavesLabel}>Sucessos</Text>
+                <View style={styles.deathSavesBoxes}>
+                  {[1, 2, 3].map((i) => (
+                    <View
+                      key={`success-${i}`}
+                      style={[
+                        styles.deathSaveBox,
+                        i <= deathSaves.successes && styles.deathSaveBoxSuccess
+                      ]}
+                    >
+                      {i <= deathSaves.successes && <Text style={styles.deathSaveCheck}>✓</Text>}
+                    </View>
+                  ))}
+                </View>
+              </View>
+              <View style={styles.deathSavesSection}>
+                <Text style={styles.deathSavesLabel}>Falhas</Text>
+                <View style={styles.deathSavesBoxes}>
+                  {[1, 2, 3].map((i) => (
+                    <View
+                      key={`failure-${i}`}
+                      style={[
+                        styles.deathSaveBox,
+                        i <= deathSaves.failures && styles.deathSaveBoxFailure
+                      ]}
+                    >
+                      {i <= deathSaves.failures && <Text style={styles.deathSaveCheck}>✕</Text>}
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -289,6 +349,91 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '700',
     fontSize: 14,
+  },
+  hitDiceContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#1a1f3a',
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  hitDiceLabel: {
+    fontSize: 13,
+    color: '#9ca3af',
+    fontWeight: '600',
+  },
+  hitDiceInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  hitDiceValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#3b9dff',
+  },
+  hitDiceType: {
+    fontSize: 14,
+    color: '#9ca3af',
+    fontWeight: '600',
+  },
+  deathSavesContainer: {
+    backgroundColor: '#2d1f1f',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#ef4444',
+  },
+  deathSavesTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ef4444',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  deathSavesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  deathSavesSection: {
+    alignItems: 'center',
+  },
+  deathSavesLabel: {
+    fontSize: 12,
+    color: '#9ca3af',
+    marginBottom: 6,
+    fontWeight: '600',
+  },
+  deathSavesBoxes: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  deathSaveBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#2d3653',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1a1f3a',
+  },
+  deathSaveBoxSuccess: {
+    backgroundColor: '#10b981',
+    borderColor: '#10b981',
+  },
+  deathSaveBoxFailure: {
+    backgroundColor: '#ef4444',
+    borderColor: '#ef4444',
+  },
+  deathSaveCheck: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
 

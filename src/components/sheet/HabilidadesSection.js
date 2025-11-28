@@ -19,11 +19,24 @@ const HabilidadesSection = ({ features, editMode, onSave }) => {
   };
 
   const handleRemoveFeature = (type, index) => {
-    const updatedFeatures = {
-      ...features,
-      [type]: features[type].filter((_, i) => i !== index),
-    };
-    onSave(updatedFeatures);
+    Alert.alert(
+      'Remover Habilidade',
+      'Deseja realmente remover esta habilidade?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Remover',
+          style: 'destructive',
+          onPress: () => {
+            const updatedFeatures = {
+              ...features,
+              [type]: features[type].filter((_, i) => i !== index),
+            };
+            onSave(updatedFeatures);
+          }
+        }
+      ]
+    );
   };
 
   const featureTypeLabels = {

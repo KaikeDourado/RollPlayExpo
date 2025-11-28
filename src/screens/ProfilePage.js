@@ -34,12 +34,9 @@ export default function ProfilePage() {
 
         // Buscar dados completos do usuário no backend
         const userRes = await fetchSecure(
-          `https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/users/token`,
+          `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/users/token`,
           {
             method: 'GET',
-            headers: {
-              Authorization: `Bearer ${authApi.getIdToken()}`,
-            },
           }
         )
         const response = await userRes.json();
@@ -64,12 +61,12 @@ export default function ProfilePage() {
         setEditData(userData);
 
         // Buscar campanhas
-        const campaignsRes = await fetchSecure(`https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/campaigns/user/${userData.uid}`);
+        const campaignsRes = await fetchSecure(`https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/user/${userData.uid}`);
         const campaignsData = await campaignsRes.json();
         setCampaigns(Array.isArray(campaignsData) ? campaignsData : campaignsData.campaigns || []);
 
         // Buscar personagens
-        const charactersRes = await fetchSecure(`https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/sheets/user/${userData.uid}`);
+        const charactersRes = await fetchSecure(`https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/sheets/user/${userData.uid}`);
         const charactersData = await charactersRes.json();
         setCharacters(Array.isArray(charactersData) ? charactersData : charactersData.sheets || []);
 
@@ -140,7 +137,7 @@ export default function ProfilePage() {
     setSaving(true);
     try {
       const response = await fetchSecure(
-        `https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/users/${user.uid}`,
+        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/users/${user.uid}`,
         {
           method: 'PUT',
           body: JSON.stringify(editData)

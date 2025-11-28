@@ -1,22 +1,15 @@
-
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
 
-/**
- * @function InventarioSection
- * @description Componente para exibir e gerenciar o inventário do personagem.
- * Adaptado do projeto React original para React Native.
- * A funcionalidade de adição/remoção é simulada, pois a lógica de backend foi removida.
- * @param {object} inventory - Objeto contendo o inventário (equipment, magicItemsAttuned, coins).
- * @param {boolean} editMode - Indica se a seção está em modo de edição.
- * @param {function} onSave - Função para salvar as alterações (simulada).
- */
 const InventarioSection = ({ inventory, editMode, onSave }) => {
   const { equipment, magicItemsAttuned, coins } = inventory;
   const [novoItem, setNovoItem] = useState({ name: '', qty: '1', weight: '0', notes: '' });
 
   const calcularPesoTotal = () => {
-    return equipment.reduce((total, item) => total + (parseFloat(item.weight) || 0) * (parseInt(item.qty) || 0), 0);
+    return equipment.reduce(
+      (total, item) => total + (parseFloat(item.weight) || 0) * (parseInt(item.qty) || 0),
+      0
+    );
   };
 
   const handleAddItem = () => {
@@ -28,7 +21,7 @@ const InventarioSection = ({ inventory, editMode, onSave }) => {
         notes: novoItem.notes,
       };
       const updatedEquipment = [...equipment, newItem];
-      Alert.alert('Sucesso', 'Item adicionado (simulado).');
+      Alert.alert('Sucesso', 'Item adicionado.');
       onSave({ ...inventory, equipment: updatedEquipment });
       setNovoItem({ name: '', qty: '1', weight: '0', notes: '' });
     } else {
@@ -37,13 +30,21 @@ const InventarioSection = ({ inventory, editMode, onSave }) => {
   };
 
   const handleRemoveItem = (index) => {
-    const updatedEquipment = equipment.filter((_, i) => i !== index);
-    Alert.alert('Sucesso', 'Item removido (simulado).');
-    onSave({ ...inventory, equipment: updatedEquipment });
-  };
-
-  const handleItemChange = (name, value) => {
-    setNovoItem({ ...novoItem, [name]: value });
+    Alert.alert(
+      'Remover Item',
+      'Deseja realmente remover este item?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Remover',
+          style: 'destructive',
+          onPress: () => {
+            const updatedEquipment = equipment.filter((_, i) => i !== index);
+            onSave({ ...inventory, equipment: updatedEquipment });
+          }
+        }
+      ]
+    );
   };
 
   const handleQuantityChange = (index, newQuantity) => {
@@ -69,142 +70,165 @@ const InventarioSection = ({ inventory, editMode, onSave }) => {
     }
   };
 
+  const coinIcons = {
+    cp: '🟤',
+    sp: '⚪',
+    ep: '🔵',
+    gp: '🟡',
+    pp: '⭐',
+  };
+
   return (
-    <View style={styles.sectionCard}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionIcon}>🎒</Text>
-        <Text style={styles.sectionTitle}>Inventário</Text>
+    <View>
+      {/* Card de Resumo */}
+      <View style={styles.card}>
+        <View style={styles.header}>
+          <Text style={styles.icon}>🎒</Text>
+          <Text style={styles.title}>Inventário</Text>
+        </View>
+
+        {/* Peso Total */}
+        <View style={styles.weightContainer}>
+          <Text style={styles.weightLabel}>Peso Total</Text>
+          <Text style={styles.weightValue}>{calcularPesoTotal().toFixed(1)} kg</Text>
+        </View>
+
+        {/* Moedas */}
+        <View style={styles.coinsContainer}>
+          {Object.entries(coins).map(([key, value]) => (
+            <View key={key} style={styles.coinBox}>
+              <Text style={styles.coinIcon}>{coinIcons[key]}</Text>
+              <Text style={styles.coinType}>{key.toUpperCase()}</Text>
+              {editMode ? (
+                <TextInput
+                  style={styles.coinInput}
+                  keyboardType="numeric"
+                  value={String(value)}
+                  onChangeText={(text) => handleCoinChange(key, text)}
+                  placeholderTextColor="#6b7280"
+                />
+              ) : (
+                <Text style={styles.coinValue}>{value}</Text>
+              )}
+            </View>
+          ))}
+        </View>
       </View>
 
-      <View style={styles.inventarioSummary}>
-	      <View style={styles.pesoTotal}>
-	        <Text>Peso Total: </Text>
-	        <Text style={styles.pesoValor}>{calcularPesoTotal().toFixed(1)} kg</Text>
-	      </View>
-	      <View style={styles.moedas}>
-	        {Object.entries(coins).map(([key, value]) => (
-	          <View key={key} style={styles.moeda}>
-	            <Text style={styles.moedaLabel}>{key.toUpperCase()}: </Text>
-	            {editMode ? (
-	              <TextInput
-	                style={styles.moedaInput}
-	                keyboardType="numeric"
-	                value={String(value)}
-	                onChangeText={(text) => handleCoinChange(key, text)}
-	              />
-	            ) : (
-	              <Text style={styles.moedaValor}>{value}</Text>
-	            )}
-	          </View>
-	        ))}
-	      </View>
+      {/* Equipamento */}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Equipamento</Text>
+        {equipment.length > 0 ? (
+          equipment.map((item, index) => (
+            <View key={index} style={styles.itemCard}>
+              <View style={styles.itemHeader}>
+                <Text style={styles.itemName}>{item.name}</Text>
+                {editMode && (
+                  <TouchableOpacity
+                    style={styles.removeBtn}
+                    onPress={() => handleRemoveItem(index)}
+                  >
+                    <Text style={styles.removeBtnText}>✕</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              <View style={styles.itemDetails}>
+                <View style={styles.itemStat}>
+                  <Text style={styles.itemStatLabel}>Quantidade</Text>
+                  {editMode ? (
+                    <TextInput
+                      style={styles.qtyInput}
+                      keyboardType="numeric"
+                      value={String(item.qty)}
+                      onChangeText={(text) => handleQuantityChange(index, text)}
+                      placeholderTextColor="#6b7280"
+                    />
+                  ) : (
+                    <Text style={styles.itemStatValue}>{item.qty}</Text>
+                  )}
+                </View>
+                <View style={styles.itemStat}>
+                  <Text style={styles.itemStatLabel}>Peso Unit.</Text>
+                  <Text style={styles.itemStatValue}>{item.weight} kg</Text>
+                </View>
+                <View style={styles.itemStat}>
+                  <Text style={styles.itemStatLabel}>Peso Total</Text>
+                  <Text style={styles.itemStatValue}>
+                    {(item.weight * item.qty).toFixed(1)} kg
+                  </Text>
+                </View>
+              </View>
+              {item.notes && (
+                <Text style={styles.itemNotes}>📌 {item.notes}</Text>
+              )}
+            </View>
+          ))
+        ) : (
+          <Text style={styles.emptyText}>Nenhum equipamento cadastrado.</Text>
+        )}
+
+        {editMode && (
+          <View style={styles.addForm}>
+            <Text style={styles.addFormTitle}>Adicionar Equipamento</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Nome do item"
+              placeholderTextColor="#6b7280"
+              value={novoItem.name}
+              onChangeText={(text) => setNovoItem({ ...novoItem, name: text })}
+            />
+            <View style={styles.formRow}>
+              <TextInput
+                style={[styles.input, { flex: 1, marginRight: 8 }]}
+                placeholder="Qtd"
+                placeholderTextColor="#6b7280"
+                keyboardType="numeric"
+                value={novoItem.qty}
+                onChangeText={(text) => setNovoItem({ ...novoItem, qty: text })}
+              />
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Peso (kg)"
+                placeholderTextColor="#6b7280"
+                keyboardType="numeric"
+                value={novoItem.weight}
+                onChangeText={(text) => setNovoItem({ ...novoItem, weight: text })}
+              />
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Notas (opcional)"
+              placeholderTextColor="#6b7280"
+              value={novoItem.notes}
+              onChangeText={(text) => setNovoItem({ ...novoItem, notes: text })}
+            />
+            <TouchableOpacity style={styles.addBtn} onPress={handleAddItem}>
+              <Text style={styles.addBtnText}>+ Adicionar Item</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
-	      <View style={styles.inventarioList}>
-	        <Text style={styles.subTitle}>Equipamento</Text>
-	        {equipment.length > 0 ? (
-	          <View style={styles.table}>
-	            <View style={styles.tableHeader}>
-	              <Text style={styles.tableHeaderText}>Item</Text>
-	              <Text style={styles.tableHeaderText}>Qtd</Text>
-	              <Text style={styles.tableHeaderText}>Peso</Text>
-	              <Text style={styles.tableHeaderText}>Notas</Text>
-	              {editMode && <Text style={styles.tableHeaderText}>Ações</Text>}
-	            </View>
-	            {equipment.map((item, index) => (
-	              <View key={index} style={styles.tableRow}>
-	                <Text style={styles.tableCell}>{item.name}</Text>
-	                <View style={styles.tableCell}>
-	                  {editMode ? (
-	                    <TextInput
-	                      style={styles.quantidadeInput}
-	                      keyboardType="numeric"
-	                      value={String(item.qty)}
-	                      onChangeText={(text) => handleQuantityChange(index, text)}
-	                    />
-	                  ) : (
-	                    <Text>{item.qty}</Text>
-	                  )}
-	                </View>
-	                <Text style={styles.tableCell}>{item.weight} kg</Text>
-	                <Text style={styles.tableCell}>{item.notes}</Text>
-	                {editMode && (
-	                  <TouchableOpacity style={styles.removeButton} onPress={() => handleRemoveItem(index)}>
-	                    <Text style={styles.removeButtonText}>✕</Text>
-	                  </TouchableOpacity>
-	                )}
-	              </View>
-	            ))}
-	          </View>
-	        ) : (
-	          <Text style={styles.noItemsText}>Nenhum equipamento cadastrado.</Text>
-	        )}
-	
-	        <Text style={styles.subTitle}>Itens Mágicos Sintonizados</Text>
-	        {magicItemsAttuned.length > 0 ? (
-	          <View style={styles.table}>
-	            <View style={styles.tableHeader}>
-	              <Text style={styles.tableHeaderText}>Item</Text>
-	              <Text style={styles.tableHeaderText}>Sintonizado</Text>
-	              {editMode && <Text style={styles.tableHeaderText}>Ações</Text>}
-	            </View>
-	            {magicItemsAttuned.map((item, index) => (
-	              <View key={index} style={styles.tableRow}>
-	                <Text style={styles.tableCell}>{item.name}</Text>
-	                <TouchableOpacity
-	                  style={styles.tableCell}
-	                  onPress={() => handleToggleAttuned(index)}
-	                  disabled={!editMode}
-	                >
-	                  <Text style={styles.attunedStatus}>{item.attuned ? 'Sim' : 'Não'}</Text>
-	                </TouchableOpacity>
-	                {editMode && (
-	                  <TouchableOpacity style={styles.removeButton} onPress={() => handleRemoveItem(index)}>
-	                    <Text style={styles.removeButtonText}>✕</Text>
-	                  </TouchableOpacity>
-	                )}
-	              </View>
-	            ))}
-	          </View>
-	        ) : (
-	          <Text style={styles.noItemsText}>Nenhum item mágico sintonizado.</Text>
-	        )}
-	      </View>
-
-      {editMode && (
-        <View style={styles.addForm}>
-	          <Text style={styles.addFormTitle}>Adicionar Equipamento</Text>
-	          <View style={styles.formRow}>
-	            <TextInput
-	              style={styles.input}
-	              placeholder="Nome do Item"
-	              value={novoItem.name}
-	              onChangeText={(text) => handleItemChange('name', text)}
-	            />
-	            <TextInput
-	              style={[styles.input, styles.smallInput]}
-	              keyboardType="numeric"
-	              placeholder="Qtd"
-	              value={novoItem.qty}
-	              onChangeText={(text) => handleItemChange('qty', text)}
-	            />
-	            <TextInput
-	              style={[styles.input, styles.smallInput]}
-	              keyboardType="numeric"
-	              placeholder="Peso (kg)"
-	              value={novoItem.weight}
-	              onChangeText={(text) => handleItemChange('weight', text)}
-	            />
-	          </View>
-	          <TextInput
-	            style={styles.input}
-	            placeholder="Notas (ex: 'Corda de Cânhamo (15m)')"
-	            value={novoItem.notes}
-	            onChangeText={(text) => handleItemChange('notes', text)}
-	          />
-	          <TouchableOpacity style={styles.addButton} onPress={handleAddItem}>
-	            <Text style={styles.addButtonText}>Adicionar Equipamento</Text>
-	          </TouchableOpacity>
+      {/* Itens Mágicos */}
+      {magicItemsAttuned.length > 0 && (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>⚡ Itens Mágicos</Text>
+          {magicItemsAttuned.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.magicItem}
+              onPress={() => handleToggleAttuned(index)}
+              disabled={!editMode}
+            >
+              <View style={[styles.attunedCheck, item.attuned && styles.attunedChecked]}>
+                {item.attuned && <Text style={styles.checkMark}>✓</Text>}
+              </View>
+              <Text style={styles.magicItemName}>{item.name}</Text>
+              <Text style={styles.attunedLabel}>
+                {item.attuned ? 'Sintonizado' : 'Não sintonizado'}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       )}
     </View>
@@ -212,194 +236,241 @@ const InventarioSection = ({ inventory, editMode, onSave }) => {
 };
 
 const styles = StyleSheet.create({
-  sectionCard: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
+  card: {
+    backgroundColor: '#1a1f3a',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#2d3653',
   },
-  sectionHeader: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2d3653',
   },
-  sectionIcon: {
-    fontSize: 20,
-    marginRight: 10,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  inventarioSummary: {
+  icon: { fontSize: 20, marginRight: 10 },
+  title: { fontSize: 18, fontWeight: '700', color: '#ffffff' },
+  
+  weightContainer: {
+    backgroundColor: '#0a0e27',
+    borderRadius: 8,
+    padding: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    marginBottom: 16,
   },
-  pesoTotal: {
+  weightLabel: { fontSize: 14, fontWeight: '600', color: '#9ca3af' },
+  weightValue: { fontSize: 20, fontWeight: '800', color: '#3b9dff' },
+
+  coinsContainer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  coinBox: {
+    flex: 1,
+    minWidth: 60,
+    backgroundColor: '#0a0e27',
+    borderRadius: 8,
+    padding: 10,
     alignItems: 'center',
-  },
-  pesoValor: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#3b82f6',
-    marginLeft: 5,
-  },
-  moedas: {
-    flexDirection: 'row',
-  },
-	  moeda: {
-	    flexDirection: 'row',
-	    alignItems: 'center',
-	    marginLeft: 15,
-	  },
-	  moedaInput: {
-	    width: 50,
-	    height: 25,
-	    borderColor: '#ddd',
-	    borderWidth: 1,
-	    borderRadius: 5,
-	    textAlign: 'center',
-	    fontSize: 14,
-	    backgroundColor: '#f9f9f9',
-	  },
-	  moedaLabel: {
-	    fontSize: 14,
-	    color: '#777',
-	  },
-	  moedaValor: {
-	    fontSize: 16,
-	    fontWeight: 'bold',
-	    color: '#333',
-	  },
-  inventarioList: {
-    // Estilos para a lista de inventário
-  },
-  table: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    marginBottom: 10,
+    borderColor: '#2d3653',
   },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#f0f0f0',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+  coinIcon: { fontSize: 20, marginBottom: 4 },
+  coinType: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6b7280',
+    marginBottom: 4,
   },
-	  tableHeaderText: {
-	    flex: 1,
-	    fontWeight: 'bold',
-	    textAlign: 'center',
-	    color: '#333',
-	  },
-	  subTitle: {
-	    fontSize: 16,
-	    fontWeight: 'bold',
-	    color: '#555',
-	    marginTop: 10,
-	    marginBottom: 5,
-	  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-	  tableCell: {
-	    flex: 1,
-	    textAlign: 'center',
-	    color: '#555',
-	    justifyContent: 'center',
-	    paddingHorizontal: 5,
-	  },
-	  attunedStatus: {
-	    fontWeight: 'bold',
-	    color: '#3b82f6',
-	  },
-  quantidadeInput: {
-    height: 30,
-    borderColor: '#ddd',
+  coinInput: {
+    width: '100%',
+    height: 28,
+    backgroundColor: '#1a1f3a',
     borderWidth: 1,
-    borderRadius: 5,
+    borderColor: '#2d3653',
+    borderRadius: 6,
     textAlign: 'center',
     fontSize: 14,
-    backgroundColor: '#f9f9f9',
+    color: '#ffffff',
+    fontWeight: '700',
   },
-	  removeButton: {
-	    width: 50,
-	    alignItems: 'center',
-	    justifyContent: 'center',
-	  },
-  removeButtonText: {
-    color: 'red',
-    fontWeight: 'bold',
+  coinValue: { fontSize: 16, fontWeight: '800', color: '#3b9dff' },
+
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 12,
   },
-  noItemsText: {
+
+  itemCard: {
+    backgroundColor: '#0a0e27',
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#2d3653',
+  },
+  itemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  itemName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+    flex: 1,
+  },
+  removeBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#ef4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  itemDetails: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  itemStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  itemStatLabel: {
+    fontSize: 11,
+    color: '#6b7280',
+    marginBottom: 4,
+    fontWeight: '600',
+  },
+  itemStatValue: {
+    fontSize: 15,
+    color: '#3b9dff',
+    fontWeight: '700',
+  },
+  qtyInput: {
+    width: 50,
+    height: 28,
+    backgroundColor: '#1a1f3a',
+    borderWidth: 1,
+    borderColor: '#2d3653',
+    borderRadius: 6,
     textAlign: 'center',
-    color: '#777',
-    fontStyle: 'italic',
-    marginTop: 10,
+    fontSize: 14,
+    color: '#ffffff',
+    fontWeight: '700',
   },
+  itemNotes: {
+    fontSize: 13,
+    color: '#9ca3af',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#2d3653',
+  },
+
   addForm: {
-    marginTop: 20,
-    padding: 10,
-    backgroundColor: '#f9f9f9',
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#0a0e27',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: '#2d3653',
   },
   addFormTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#333',
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 12,
+  },
+  input: {
+    backgroundColor: '#1a1f3a',
+    borderWidth: 1.5,
+    borderColor: '#2d3653',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 15,
+    color: '#ffffff',
+    marginBottom: 8,
   },
   formRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
   },
-  input: {
-    flex: 1,
-    height: 40,
-    borderColor: '#ddd',
+  addBtn: {
+    backgroundColor: '#3b9dff',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  addBtnText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+
+  magicItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0a0e27',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
     borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 10,
-    backgroundColor: '#fff',
-    fontSize: 14,
-    marginRight: 10,
+    borderColor: '#3b9dff',
   },
-	  smallInput: {
-	    flex: 0.5,
-	    marginRight: 10,
-	  },
-	  addButton: {
-	    backgroundColor: '#28a745',
-	    padding: 10,
-	    borderRadius: 5,
-	    alignItems: 'center',
-	    justifyContent: 'center',
-	    marginTop: 10,
-	  },
-  addButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  attunedCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#2d3653',
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  attunedChecked: {
+    backgroundColor: '#3b9dff',
+    borderColor: '#3b9dff',
+  },
+  checkMark: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  magicItemName: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  attunedLabel: {
+    fontSize: 12,
+    color: '#9ca3af',
+    fontWeight: '600',
+  },
+
+  emptyText: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    paddingVertical: 20,
   },
 });
 
 export default InventarioSection;
-

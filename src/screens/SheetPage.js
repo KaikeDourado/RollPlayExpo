@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Text, Alert } from 'react-native';
 import { useRoute } from '@react-navigation/native';
+import { fetchSecure } from '../lib/fetchSecure';
 
 // Importar componentes
 import FichaHeader from '../components/sheet/FichaHeader';
@@ -13,162 +14,57 @@ import HabilidadesSection from '../components/sheet/HabilidadesSection';
 import PersonalidadeSection from '../components/sheet/PersonalidadeSection';
 import AnotacoesSection from '../components/sheet/AnotacoesSection';
 
-const initialCharacterData = {
-  "userUid": "Ss52b0C44TgyrsMAwyjMaq7uMfi2",
-  "campaignUid": "1762008485571",
-  "name": "Arden Vale",
-  "characterClass": "Guerreiro",
-  "subclass": "Campeão",
-  "level": 5,
-  "race": "Humano",
-  "species": "Humano",
-  "alignment": "Neutro Bom",
-  "background": "Soldado",
-  "xp": 6500,
-  "proficiencyBonus": 3,
-  "inspirationHeroica": false,
-  "attributes": {
-    "str": { "score": 16, "mod": 3, "saveProficient": true, "saveBonus": 6 },
-    "dex": { "score": 14, "mod": 2, "saveProficient": false, "saveBonus": 2 },
-    "con": { "score": 15, "mod": 2, "saveProficient": true, "saveBonus": 5 },
-    "int": { "score": 10, "mod": 0, "saveProficient": false, "saveBonus": 0 },
-    "wis": { "score": 12, "mod": 1, "saveProficient": false, "saveBonus": 1 },
-    "cha": { "score": 10, "mod": 0, "saveProficient": false, "saveBonus": 0 }
-  },
-  "skills": {
-    "athletics": { "ability": "str", "proficient": true, "bonus": 6 },
-    "acrobatics": { "ability": "dex", "proficient": false, "bonus": 2 },
-    "sleightOfHand": { "ability": "dex", "proficient": false, "bonus": 2 },
-    "stealth": { "ability": "dex", "proficient": true, "bonus": 5 },
-    "arcana": { "ability": "int", "proficient": false, "bonus": 0 },
-    "history": { "ability": "int", "proficient": false, "bonus": 0 },
-    "investigation": { "ability": "int", "proficient": false, "bonus": 0 },
-    "nature": { "ability": "int", "proficient": false, "bonus": 0 },
-    "religion": { "ability": "int", "proficient": false, "bonus": 0 },
-    "animalHandling": { "ability": "wis", "proficient": false, "bonus": 1 },
-    "insight": { "ability": "wis", "proficient": true, "bonus": 4 },
-    "medicine": { "ability": "wis", "proficient": false, "bonus": 1 },
-    "perception": { "ability": "wis", "proficient": true, "bonus": 4 },
-    "survival": { "ability": "wis", "proficient": false, "bonus": 1 },
-    "deception": { "ability": "cha", "proficient": false, "bonus": 0 },
-    "intimidation": { "ability": "cha", "proficient": true, "bonus": 3 },
-    "performance": { "ability": "cha", "proficient": false, "bonus": 0 },
-    "persuasion": { "ability": "cha", "proficient": false, "bonus": 0 }
-  },
-  "passivePerception": 14,
-  "size": "Médio",
-  "speed": { "walk": 9, "swim": 0, "fly": 0, "climb": 0, "burrow": 0 },
-  "initiative": 2,
-  "ac": {
-    "value": 18,
-    "breakdown": { "base": 10, "dex": 2, "armor": 6, "shield": 0, "misc": 0 },
-    "shieldEquipped": false
-  },
-  "hp": {
-    "current": 41,
-    "max": 49,
-    "temp": 0,
-    "hitDice": { "type": "d10", "max": 5, "spent": 2 }
-  },
-  "deathSaves": { "successes": 0, "failures": 0 },
-  "equipmentProficiencies": {
-    "armor": { "light": true, "medium": true, "heavy": true, "shields": true },
-    "weapons": { "simple": true, "martial": true },
-    "tools": ["Kit de Jogo (dados)", "Veículos Terrestres"]
-  },
-  "languages": ["Comum", "Élfico"],
-  "treinamentoEProfEquip": {
-    "armadura": ["Leve", "Média", "Pesada", "Escudos"],
-    "armas": ["Simples", "Marciais"],
-    "ferramentas": ["Kit de Jogo (dados)", "Veículos Terrestres"]
-  },
-  "weapons": [
-    {
-      "name": "Espada Longa",
-      "bonusOrDC": "+6",
-      "damageType": "1d8 + 3 cortante (1d10 + 3 com duas mãos)",
-      "notes": "Versátil"
-    },
-    {
-      "name": "Azagaia",
-      "bonusOrDC": "+5",
-      "damageType": "1d6 + 2 perfurante (alcance 9m)",
-      "notes": "Arremesso"
-    }
-  ],
-  "features": {
-    "classFeatures": [
-      "Estilo de Luta (Defesa)",
-      "Surto de Ação (1/Descanso)",
-      "Segundo Fôlego (1/Descanso)",
-      "Campeão: Crítico Aprimorado (19–20)"
-    ],
-    "speciesTraits": [
-      "Talento Versátil (Humano)",
-      "Idiomas Adicionais"
-    ],
-    "feats": ["Sentinela"]
-  },
-  "inventory": {
-    "equipment": [
-      { "name": "Cota de Malha", "qty": 1, "weight": 27.5, "notes": "" },
-      { "name": "Pacote de Aventureiro", "qty": 1, "weight": 9.0, "notes": "" },
-      { "name": "Corda de Cânhamo (15m)", "qty": 1, "weight": 4.5, "notes": "" }
-    ],
-    "magicItemsAttuned": [
-      { "name": "Anel de Proteção", "attuned": true },
-      { "name": "Botas da Furtividade", "attuned": true }
-    ],
-    "coins": { "cp": 12, "sp": 8, "ep": 0, "gp": 45, "pp": 1 }
-  },
-  "spellcasting": {
-    "hasSpellcasting": false,
-    "spellcastingAbility": null,
-    "spellSaveDC": null,
-    "spellAttackBonus": null,
-    "spellcastingMod": null,
-    "preparedCount": null,
-    "cantrips": [],
-    "spellsByLevel": {
-      "0": { "slots": { "total": 0, "expended": 0 }, "spells": [] },
-      "1": { "slots": { "total": 0, "expended": 0 }, "spells": [] },
-      "2": { "slots": { "total": 0, "expended": 0 }, "spells": [] },
-      "3": { "slots": { "total": 0, "expended": 0 }, "spells": [] },
-      "4": { "slots": { "total": 0, "expended": 0 }, "spells": [] },
-      "5": { "slots": { "total": 0, "expended": 0 }, "spells": [] },
-      "6": { "slots": { "total": 0, "expended": 0 }, "spells": [] },
-      "7": { "slots": { "total": 0, "expended": 0 }, "spells": [] },
-      "8": { "slots": { "total": 0, "expended": 0 }, "spells": [] },
-      "9": { "slots": { "total": 0, "expended": 0 }, "spells": [] }
-    },
-    "spellNotes": ""
-  },
-  "appearance": "Homem humano de 1,78 m, cabelo castanho curto, cicatriz discreta na sobrancelha, capa gasta.",
-  "backstoryPersonality": "Ex-soldado disciplinado, protege os fracos, impaciente com injustiça.",
-  "ideals": "Honra e dever.",
-  "bonds": "Prometeu proteger o vilarejo natal.",
-  "flaws": "Teimoso e desconfiado de magia.",
-  "notes": "Anotar aqui quaisquer condições, inspiração, etc.",
-  "createdAt": "2025-11-01T10:00:00.000Z",
-  "updatedAt": "2025-11-01T10:00:00.000Z"
-};
-
 const SheetPage = () => {
   const route = useRoute();
   const { id } = route.params;
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [characterData, setCharacterData] = useState(null);
   const [activeSection, setActiveSection] = useState('visaoGeral');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setTimeout(() => {
-      setCharacterData(initialCharacterData);
-      setLoading(false);
-    }, 1000);
+    fetchCharacterData();
   }, [id]);
 
+  const fetchCharacterData = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      console.log('Buscando ficha com ID:', id);
+      
+      const response = await fetchSecure(
+        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/sheets/${id}`,
+        { method: 'GET' }
+      );
+
+      console.log('Status da resposta:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`Erro ao buscar ficha: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Ficha carregada:', data);
+
+      // Se a API retorna { success: true, data: {...} }
+      const sheetData = data.data || data;
+      
+      setCharacterData(sheetData);
+    } catch (err) {
+      console.error('Erro ao buscar ficha:', err);
+      setError(err.message || 'Não foi possível carregar a ficha.');
+      Alert.alert('Erro', 'Não foi possível carregar a ficha do personagem.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleUpdateCharacter = (section, data) => {
+    if (!editMode) return;
+
+    // Atualiza localmente primeiro (otimista)
     setCharacterData(prev => {
       if (section === 'general') {
         return { ...prev, ...data };
@@ -178,6 +74,44 @@ const SheetPage = () => {
         [section]: data
       };
     });
+  };
+
+  const saveToBackend = async () => {
+    if (!characterData) return;
+
+    setSaving(true);
+    try {
+      console.log('Salvando ficha:', characterData);
+
+      const response = await fetchSecure(
+        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/sheets/${id}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(characterData)
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Erro ao salvar ficha');
+      }
+
+      Alert.alert('Sucesso', 'Ficha salva com sucesso!');
+      setEditMode(false);
+    } catch (err) {
+      console.error('Erro ao salvar ficha:', err);
+      Alert.alert('Erro', 'Não foi possível salvar as alterações.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEditToggle = () => {
+    if (editMode) {
+      // Salvando ao sair do modo de edição
+      saveToBackend();
+    } else {
+      setEditMode(true);
+    }
   };
 
   const renderSection = () => {
@@ -270,11 +204,25 @@ const SheetPage = () => {
     }
   };
 
-  if (loading || !characterData) {
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#3b9dff" />
         <Text style={styles.loadingText}>Carregando ficha...</Text>
+      </View>
+    );
+  }
+
+  if (error || !characterData) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorIcon}>⚠️</Text>
+        <Text style={styles.errorText}>
+          {error || 'Não foi possível carregar a ficha'}
+        </Text>
+        <TouchableOpacity style={styles.retryButton} onPress={fetchCharacterData}>
+          <Text style={styles.retryButtonText}>Tentar Novamente</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -299,8 +247,10 @@ const SheetPage = () => {
         pvAtual={characterData.hp.current}
         pvTotal={characterData.hp.max}
         pvTemp={characterData.hp.temp}
+        hitDice={characterData.hp.hitDice}
+        deathSaves={characterData.deathSaves}
         editMode={editMode}
-        onEditToggle={() => setEditMode(!editMode)}
+        onEditToggle={handleEditToggle}
         onHeal={(value) => {
           const newHp = Math.min(characterData.hp.current + value, characterData.hp.max);
           handleUpdateCharacter('hp', { ...characterData.hp, current: newHp });
@@ -344,6 +294,16 @@ const SheetPage = () => {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {renderSection()}
       </ScrollView>
+
+      {/* Indicador de Salvamento */}
+      {saving && (
+        <View style={styles.savingOverlay}>
+          <View style={styles.savingContainer}>
+            <ActivityIndicator size="large" color="#3b9dff" />
+            <Text style={styles.savingText}>Salvando...</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -364,6 +324,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#9ca3af',
     fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#0a0e27',
+    padding: 20,
+  },
+  errorIcon: {
+    fontSize: 64,
+    marginBottom: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#ef4444',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 24,
+  },
+  retryButton: {
+    backgroundColor: '#3b9dff',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
   },
   menuContainer: {
     backgroundColor: '#1a1f3a',
@@ -408,6 +397,30 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
+  },
+  savingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  savingContainer: {
+    backgroundColor: '#1a1f3a',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2d3653',
+  },
+  savingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#ffffff',
+    fontWeight: '600',
   },
 });
 

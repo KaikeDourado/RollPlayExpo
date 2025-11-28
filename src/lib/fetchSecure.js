@@ -7,6 +7,7 @@ export async function fetchSecure(url, init = {}) {
     
     const token = await authApi.getIdToken(false);
     console.log('Token obtido com sucesso');
+    console.log('Token:', token);
     
     const headers = {
       ...init.headers,

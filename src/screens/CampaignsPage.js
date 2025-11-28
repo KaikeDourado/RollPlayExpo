@@ -32,7 +32,7 @@ const SessionModal = ({ visible, onClose, onCampaignCreated }) => {
       console.log('Criando campanha:', campaignData);
 
       const response = await fetchSecure(
-        'https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/campaigns',
+        'https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns',
         {
           method: 'POST',
           headers: {
@@ -146,7 +146,7 @@ const EnterSessionModal = ({ visible, onClose, onSessionJoined }) => {
 
       // Primeiro, buscar a campanha pelo código
       const searchResponse = await fetchSecure(
-        `https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/campaigns/${sessionCode.trim()}`,
+        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${sessionCode.trim()}`,
         { method: 'GET' }
       );
 
@@ -178,7 +178,7 @@ const EnterSessionModal = ({ visible, onClose, onSessionJoined }) => {
 
       // Adicionar o jogador à campanha
       const joinResponse = await fetchSecure(
-        `https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/campaigns/user/enter`,
+        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/user/enter`,
         {
           method: 'PATCH',
           headers: {
@@ -186,7 +186,7 @@ const EnterSessionModal = ({ visible, onClose, onSessionJoined }) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            campaignId: campaignId
+            campaignUid: campaignId
           })
         }
       );
@@ -291,7 +291,7 @@ export default function CampaignsPage() {
       console.log('Buscando campanhas para o usuário:', userId);
 
       const response = await fetchSecure(
-        `https://rollplay-ajejd0eah5dugwej.eastus-01.azurewebsites.net/campaigns/user/${userId}`,
+        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/user/${userId}`,
         { method: 'GET' }
       );
 
