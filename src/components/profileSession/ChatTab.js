@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { fetchSecure } from '../../lib/fetchSecure';
 import { authApi } from '../../lib/auth';
+const API_BASE_URL = 'https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net';
 
 const DiceButton = ({ label, onPress }) => (
   <TouchableOpacity style={diceButtonStyles.button} onPress={onPress} activeOpacity={0.7}>
@@ -17,8 +18,8 @@ const ChatTab = ({ campaignUid }) => {
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const scrollViewRef = useRef(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const scrollViewRef = useRef(null);
 
   useEffect(() => {
     const user = authApi.getCurrentUser();
@@ -30,14 +31,18 @@ const ChatTab = ({ campaignUid }) => {
     setLoading(true);
     try {
       const response = await fetchSecure(
-        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/chat`,
+        `${API_BASE_URL}/campaigns/${campaignUid}/chat`,
         { method: 'GET' }
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        setMessages(data.messages || []);
+      if (!response.ok) {
+        console.error('Erro ao buscar mensagens:', response.status);
+        return;
       }
+
+      const data = await response.json();
+      // espera que a API retorne { messages: [...] }
+      setMessages(data.messages || []);
     } catch (err) {
       console.error('Erro ao buscar mensagens:', err);
     } finally {
@@ -46,16 +51,46 @@ const ChatTab = ({ campaignUid }) => {
   };
 
   const handleDiceRoll = async (diceType) => {
-    const diceNumber = parseInt(diceType.substring(1));
-    const result = Math.floor(Math.random() * diceNumber) + 1;
-    
-    const diceMessage = `🎲 rolou ${diceType} e tirou ${result}!`;
-    await sendMessage(diceMessage, 'dice');
+    if (!currentUser) return;
+
+    // "d6" -> 6
+    const numSides = parseInt(diceType.substring(1), 10);
+    const numDice = 1;
+
+    try {
+      const response = await fetchSecure(
+        `${API_BASE_URL}/dice/roll`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            numDice,
+            numSides,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        console.error('Erro ao rolar dados:', response.status);
+        return;
+      }
+
+      const { rolls, total } = await response.json();
+
+      // mensagem simples, sem frescura
+      const diceMessage = `🎲 ${currentUser.displayName || 'Jogador'} rolou ${numDice}d${numSides}: [${rolls.join(', ')}] (total: ${total})`;
+
+      await sendMessage(diceMessage, 'dice');
+    } catch (err) {
+      console.error('Erro ao rolar dados:', err);
+    }
   };
 
   const handleSendMessage = async () => {
     if (!messageText.trim()) return;
-    
+
     await sendMessage(messageText.trim(), 'text');
     setMessageText('');
   };
@@ -71,29 +106,34 @@ const ChatTab = ({ campaignUid }) => {
         senderId: currentUser.uid,
         senderName: currentUser.displayName || 'Jogador',
         campaignId: campaignUid,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const response = await fetchSecure(
-        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/chat`,
+        `${API_BASE_URL}/campaigns/${campaignUid}/chat`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(messageData)
+          body: JSON.stringify(messageData),
         }
       );
 
-      if (response.ok) {
-        const newMessage = await response.json();
-        setMessages(prev => [...prev, newMessage]);
-        
-        // Scroll para o final
-        setTimeout(() => {
-          scrollViewRef.current?.scrollToEnd({ animated: true });
-        }, 100);
+      if (!response.ok) {
+        console.error('Erro ao enviar mensagem:', response.status);
+        return;
       }
+
+      const newMessage = await response.json();
+
+      // adiciona a mensagem nova na lista atual
+      setMessages(prev => [...prev, newMessage]);
+
+      // scroll pro final
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     } catch (err) {
       console.error('Erro ao enviar mensagem:', err);
     } finally {
@@ -118,14 +158,14 @@ const ChatTab = ({ campaignUid }) => {
     }
 
     return (
-      <View 
-        key={message.id || message._id} 
+      <View
+        key={message.id || message._id}
         style={[
           styles.messageContainer,
           isCurrentUser && styles.messageContainerRight
         ]}
       >
-        <View 
+        <View
           style={[
             styles.messageBubble,
             isCurrentUser && styles.messageBubbleRight,
@@ -151,9 +191,9 @@ const ChatTab = ({ campaignUid }) => {
             styles.messageTime,
             isCurrentUser && styles.messageTimeRight
           ]}>
-            {message.timestamp ? new Date(message.timestamp).toLocaleTimeString('pt-BR', { 
-              hour: '2-digit', 
-              minute: '2-digit' 
+            {message.timestamp ? new Date(message.timestamp).toLocaleTimeString('pt-BR', {
+              hour: '2-digit',
+              minute: '2-digit'
             }) : ''}
           </Text>
         </View>
@@ -171,13 +211,13 @@ const ChatTab = ({ campaignUid }) => {
   }
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={100}
     >
       {/* Messages */}
-      <ScrollView 
+      <ScrollView
         ref={scrollViewRef}
         style={styles.messagesContainer}
         contentContainerStyle={styles.messagesContent}
@@ -198,8 +238,8 @@ const ChatTab = ({ campaignUid }) => {
       {/* Dice Buttons */}
       <View style={styles.diceSection}>
         <Text style={styles.diceSectionTitle}>🎲 Rolar Dados</Text>
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.diceButtonsContainer}
         >
@@ -225,8 +265,8 @@ const ChatTab = ({ campaignUid }) => {
           maxLength={500}
           editable={!sending}
         />
-        <TouchableOpacity 
-          style={[styles.sendButton, sending && styles.sendButtonDisabled]} 
+        <TouchableOpacity
+          style={[styles.sendButton, sending && styles.sendButtonDisabled]}
           onPress={handleSendMessage}
           disabled={sending || !messageText.trim()}
           activeOpacity={0.7}

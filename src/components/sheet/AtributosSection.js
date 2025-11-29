@@ -98,6 +98,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1f3a',
     borderRadius: 12,
     padding: 16,
+    marginBottom: 40,
     borderWidth: 1,
     borderColor: '#2d3653',
   },
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   attrCard: {
-    width: '31%',
+    width: '48%',
     backgroundColor: '#0a0e27',
     borderRadius: 10,
     padding: 12,

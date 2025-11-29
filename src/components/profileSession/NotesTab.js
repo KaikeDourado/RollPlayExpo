@@ -15,36 +15,69 @@ const AddNoteModal = ({ visible, onClose, onNoteAdded, campaignUid }) => {
 
     setLoading(true);
     try {
-      const noteData = {
+      // Primeiro, buscar a campanha atual para obter o array de notas
+      const getCampaignResponse = await fetchSecure(
+        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+        { method: 'GET' }
+      );
+
+      if (!getCampaignResponse.ok) {
+        throw new Error('Não foi possível buscar a campanha');
+      }
+
+      const campaignText = await getCampaignResponse.text();
+      const campaignData = JSON.parse(campaignText);
+      
+      // Extrair os dados da campanha
+      let campaign;
+      if (campaignData.data) {
+        campaign = campaignData.data;
+      } else if (campaignData.campaign) {
+        campaign = campaignData.campaign;
+      } else {
+        campaign = campaignData;
+      }
+
+      // Criar a nova nota
+      const newNote = {
+        id: Date.now().toString(), // ID único baseado em timestamp
         title: title.trim(),
         content: content.trim(),
-        campaignId: campaignUid,
         createdAt: new Date().toISOString()
       };
 
+      // Adicionar a nova nota ao array existente
+      const updatedNotas = [...(campaign.notas || []), newNote];
+
+      // Atualizar a campanha com o novo array de notas
       const response = await fetchSecure(
-        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/notes`,
+        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
         {
-          method: 'POST',
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(noteData)
+          body: JSON.stringify({
+            ...campaign,
+            notas: updatedNotas,
+            updatedAt: new Date().toISOString()
+          })
         }
       );
 
+      const responseText = await response.text();
+      console.log('📥 Resposta da criação de nota:', responseText);
+
       if (response.ok) {
-        const newNote = await response.json();
         Alert.alert('Sucesso', 'Nota adicionada com sucesso!');
         setTitle('');
         setContent('');
         onClose();
         if (onNoteAdded) {
-          onNoteAdded(newNote);
+          onNoteAdded();
         }
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        Alert.alert('Erro', errorData.message || 'Não foi possível adicionar a nota.');
+        Alert.alert('Erro', 'Não foi possível adicionar a nota.');
       }
     } catch (err) {
       console.error('Erro ao adicionar nota:', err);
@@ -129,20 +162,50 @@ const NotesTab = ({ campaignUid }) => {
     }
 
     setLoading(true);
+    setError('');
+    
     try {
+      console.log('🔍 Buscando notas da campanha:', campaignUid);
+      
       const response = await fetchSecure(
-        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/notes`,
+        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
         { method: 'GET' }
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        setNotes(data.notes || []);
-      } else {
-        setError('Erro ao carregar notas');
+      console.log('📊 Status da resposta:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`Erro ao buscar campanha: ${response.status}`);
       }
+
+      const responseText = await response.text();
+      console.log('📥 Resposta raw:', responseText);
+      
+      const data = JSON.parse(responseText);
+      console.log('✅ Dados da campanha:', data);
+      
+      // Extrair os dados da campanha
+      let campaignData;
+      if (data.data) {
+        campaignData = data.data;
+      } else if (data.campaign) {
+        campaignData = data.campaign;
+      } else {
+        campaignData = data;
+      }
+      
+      console.log('📦 Campanha extraída:', campaignData);
+      console.log('📝 Notas array:', campaignData.notas);
+      
+      // Se notas é um array vazio ou não existe, definir como array vazio
+      const notesArray = Array.isArray(campaignData.notas) ? campaignData.notas : [];
+      
+      console.log(`✅ Total de notas: ${notesArray.length}`);
+      
+      setNotes(notesArray);
+      
     } catch (err) {
-      console.error('Erro ao buscar notas:', err);
+      console.error('❌ Erro ao buscar notas:', err);
       setError('Não foi possível carregar as notas');
     } finally {
       setLoading(false);
@@ -164,9 +227,47 @@ const NotesTab = ({ campaignUid }) => {
           style: 'destructive',
           onPress: async () => {
             try {
+              // Buscar a campanha atual
+              const getCampaignResponse = await fetchSecure(
+                `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+                { method: 'GET' }
+              );
+
+              if (!getCampaignResponse.ok) {
+                throw new Error('Não foi possível buscar a campanha');
+              }
+
+              const campaignText = await getCampaignResponse.text();
+              const campaignData = JSON.parse(campaignText);
+              
+              let campaign;
+              if (campaignData.data) {
+                campaign = campaignData.data;
+              } else if (campaignData.campaign) {
+                campaign = campaignData.campaign;
+              } else {
+                campaign = campaignData;
+              }
+
+              // Remover a nota do array
+              const updatedNotas = (campaign.notas || []).filter(
+                note => note.id !== noteId && note._id !== noteId
+              );
+
+              // Atualizar a campanha
               const response = await fetchSecure(
-                `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/notes/${noteId}`,
-                { method: 'DELETE' }
+                `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+                {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    ...campaign,
+                    notas: updatedNotas,
+                    updatedAt: new Date().toISOString()
+                  })
+                }
               );
 
               if (response.ok) {
@@ -214,6 +315,12 @@ const NotesTab = ({ campaignUid }) => {
       {error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>⚠️ {error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton} 
+            onPress={fetchNotes}
+          >
+            <Text style={styles.retryButtonText}>Tentar Novamente</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView 
@@ -222,8 +329,8 @@ const NotesTab = ({ campaignUid }) => {
           contentContainerStyle={styles.notesListContent}
         >
           {notes.length > 0 ? (
-            notes.map(note => (
-              <View key={note.id || note._id} style={styles.noteItem}>
+            notes.map((note, index) => (
+              <View key={note.id || note._id || `note-${index}`} style={styles.noteItem}>
                 <View style={styles.noteHeader}>
                   <Text style={styles.noteTitle}>{note.title}</Text>
                   <TouchableOpacity 
@@ -250,6 +357,12 @@ const NotesTab = ({ campaignUid }) => {
               <Text style={styles.emptyStateText}>
                 Crie suas primeiras anotações para registrar informações importantes da campanha!
               </Text>
+              <TouchableOpacity 
+                style={styles.emptyStateButton}
+                onPress={() => setModalVisible(true)}
+              >
+                <Text style={styles.emptyStateButtonText}>Criar Primeira Nota</Text>
+              </TouchableOpacity>
             </View>
           )}
         </ScrollView>
@@ -320,12 +433,25 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#ef4444',
+    alignItems: 'center',
   },
   errorText: {
     color: '#ef4444',
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
+    marginBottom: 12,
+  },
+  retryButton: {
+    backgroundColor: '#ef4444',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
   },
   notesList: {
     flex: 1,
@@ -396,6 +522,18 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     textAlign: 'center',
     lineHeight: 22,
+    marginBottom: 24,
+  },
+  emptyStateButton: {
+    backgroundColor: '#3b9dff',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  emptyStateButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
 

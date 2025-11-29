@@ -25,7 +25,7 @@ const CharacterSelectModal = ({ onClose, campaignUid }) => {
 
       // Buscar fichas do usuário que pertencem a esta campanha
       const response = await fetchSecure(
-        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/sheets/token/1762008485571`,
+        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/sheets/token/${campaignUid}`,
         { method: 'GET' }
       );
 
@@ -33,7 +33,7 @@ const CharacterSelectModal = ({ onClose, campaignUid }) => {
         const data = await response.json();
         setCharacters(data.sheets || []);
       } else {
-        setError('Erro ao carregar personagens');
+        setError('Não há personagens cadastrados na campanha');
       }
     } catch (err) {
       console.error('Erro ao buscar personagens:', err);

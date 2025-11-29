@@ -94,7 +94,7 @@ export default function ProfileSessionPage() {
         console.log('Buscando dados da campanha:', campaignUid);
         
         const response = await fetchSecure(
-          `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+          `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
           { method: 'GET' }
         );
 
@@ -185,15 +185,15 @@ export default function ProfileSessionPage() {
       case 'GERAL':
         return <GeneralTab campaignData={sessionData} campaignUid={campaignUid} />;
       case 'JOGADORES':
-        return <PlayersTab campaignUid={campaignUid} />;
+        return <PlayersTab campaignUid={sessionData.uid} />;
       case 'SESSÕES':
-        return <SessionsTab campaignUid={campaignUid} />;
+        return <SessionsTab campaignUid={sessionData.uid} />;
       case 'NOTAS':
-        return <NotesTab campaignUid={campaignUid} />;
+        return <NotesTab campaignUid={sessionData.uid} />;
       case 'MAPAS':
-        return <MapsTab campaignUid={campaignUid} />;
+        return <MapsTab campaignUid={sessionData.uid} />;
       case 'NPCS':
-        return <NPCsTab campaignUid={campaignUid} />;
+        return <NPCsTab campaignUid={sessionData.uid} />;
       default:
         return <GeneralTab campaignData={sessionData} campaignUid={campaignUid} />;
     }
@@ -279,7 +279,7 @@ export default function ProfileSessionPage() {
               <Text style={styles.chatCloseButtonText}>✕</Text>
             </TouchableOpacity>
           </View>
-          <ChatTab campaignUid={campaignUid} />
+          <ChatTab campaignUid={sessionData.uid} />
         </View>
       </Modal>
 
@@ -297,7 +297,7 @@ export default function ProfileSessionPage() {
         >
           <CharacterSelectModal
             onClose={closeCharacterModal}
-            campaignUid={campaignUid}
+            campaignUid={sessionData.uid}
           />
         </Animated.View>
       )}

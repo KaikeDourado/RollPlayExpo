@@ -211,7 +211,7 @@ const InventarioSection = ({ inventory, editMode, onSave }) => {
 
       {/* Itens Mágicos */}
       {magicItemsAttuned.length > 0 && (
-        <View style={styles.card}>
+        <View style={[styles.card, {marginBottom: 40}]}>
           <Text style={styles.sectionTitle}>⚡ Itens Mágicos</Text>
           {magicItemsAttuned.map((item, index) => (
             <TouchableOpacity
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   },
   coinInput: {
     width: '100%',
-    height: 28,
+    height: 50,
     backgroundColor: '#1a1f3a',
     borderWidth: 1,
     borderColor: '#2d3653',

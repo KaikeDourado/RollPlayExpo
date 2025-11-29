@@ -16,38 +16,71 @@ const AddNPCModal = ({ visible, onClose, onNPCAdded, campaignUid }) => {
 
     setLoading(true);
     try {
-      const npcData = {
+      // Primeiro, buscar a campanha atual para obter o array de NPCs
+      const getCampaignResponse = await fetchSecure(
+        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+        { method: 'GET' }
+      );
+
+      if (!getCampaignResponse.ok) {
+        throw new Error('Não foi possível buscar a campanha');
+      }
+
+      const campaignText = await getCampaignResponse.text();
+      const campaignData = JSON.parse(campaignText);
+      
+      // Extrair os dados da campanha
+      let campaign;
+      if (campaignData.data) {
+        campaign = campaignData.data;
+      } else if (campaignData.campaign) {
+        campaign = campaignData.campaign;
+      } else {
+        campaign = campaignData;
+      }
+
+      // Criar o novo NPC
+      const newNPC = {
+        id: Date.now().toString(), // ID único baseado em timestamp
         name: name.trim(),
         role: role.trim(),
         description: description.trim(),
-        campaignId: campaignUid,
         createdAt: new Date().toISOString()
       };
 
+      // Adicionar o novo NPC ao array existente
+      const updatedNpcs = [...(campaign.npcs || []), newNPC];
+
+      // Atualizar a campanha com o novo array de NPCs
       const response = await fetchSecure(
-        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/npcs`,
+        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
         {
-          method: 'POST',
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(npcData)
+          body: JSON.stringify({
+            ...campaign,
+            npcs: updatedNpcs,
+            updatedAt: new Date().toISOString()
+          })
         }
       );
 
+      const responseText = await response.text();
+      console.log('📥 Resposta da criação de NPC:', responseText);
+
       if (response.ok) {
-        const newNPC = await response.json();
         Alert.alert('Sucesso', 'NPC adicionado com sucesso!');
         setName('');
         setRole('');
         setDescription('');
         onClose();
         if (onNPCAdded) {
-          onNPCAdded(newNPC);
+          onNPCAdded();
         }
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        Alert.alert('Erro', errorData.message || 'Não foi possível adicionar o NPC.');
+        Alert.alert('Erro', 'Não foi possível adicionar o NPC.');
       }
     } catch (err) {
       console.error('Erro ao adicionar NPC:', err);
@@ -143,20 +176,41 @@ const NPCsTab = ({ campaignUid }) => {
     }
 
     setLoading(true);
+    setError('');
+    
     try {
+      console.log('🔍 Buscando NPCs da campanha:', campaignUid);
+      
       const response = await fetchSecure(
-        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/npcs`,
+        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
         { method: 'GET' }
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        setNpcs(data.npcs || []);
-      } else {
-        setError('Erro ao carregar NPCs');
+      if (!response.ok) {
+        throw new Error(`Erro ao buscar campanha: ${response.status}`);
       }
+
+      const responseText = await response.text();
+      const data = JSON.parse(responseText);
+      
+      let campaignData;
+      if (data.data) {
+        campaignData = data.data;
+      } else if (data.campaign) {
+        campaignData = data.campaign;
+      } else {
+        campaignData = data;
+      }
+      
+      console.log('🧙 NPCs array:', campaignData.npcs);
+      
+      const npcsArray = Array.isArray(campaignData.npcs) ? campaignData.npcs : [];
+      console.log(`✅ Total de NPCs: ${npcsArray.length}`);
+      
+      setNpcs(npcsArray);
+      
     } catch (err) {
-      console.error('Erro ao buscar NPCs:', err);
+      console.error('❌ Erro ao buscar NPCs:', err);
       setError('Não foi possível carregar os NPCs');
     } finally {
       setLoading(false);
@@ -186,9 +240,47 @@ const NPCsTab = ({ campaignUid }) => {
           style: 'destructive',
           onPress: async () => {
             try {
+              // Buscar a campanha atual
+              const getCampaignResponse = await fetchSecure(
+                `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+                { method: 'GET' }
+              );
+
+              if (!getCampaignResponse.ok) {
+                throw new Error('Não foi possível buscar a campanha');
+              }
+
+              const campaignText = await getCampaignResponse.text();
+              const campaignData = JSON.parse(campaignText);
+              
+              let campaign;
+              if (campaignData.data) {
+                campaign = campaignData.data;
+              } else if (campaignData.campaign) {
+                campaign = campaignData.campaign;
+              } else {
+                campaign = campaignData;
+              }
+
+              // Remover o NPC do array
+              const updatedNpcs = (campaign.npcs || []).filter(
+                npc => npc.id !== npcId && npc._id !== npcId
+              );
+
+              // Atualizar a campanha
               const response = await fetchSecure(
-                `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/npcs/${npcId}`,
-                { method: 'DELETE' }
+                `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+                {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    ...campaign,
+                    npcs: updatedNpcs,
+                    updatedAt: new Date().toISOString()
+                  })
+                }
               );
 
               if (response.ok) {
@@ -236,6 +328,12 @@ const NPCsTab = ({ campaignUid }) => {
       {error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>⚠️ {error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton} 
+            onPress={fetchNPCs}
+          >
+            <Text style={styles.retryButtonText}>Tentar Novamente</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView 
@@ -243,9 +341,9 @@ const NPCsTab = ({ campaignUid }) => {
           showsVerticalScrollIndicator={false}
         >
           {npcs.length > 0 ? (
-            npcs.map(npc => (
+            npcs.map((npc, index) => (
               <TouchableOpacity
-                key={npc.id || npc._id}
+                key={npc.id || npc._id || `npc-${index}`}
                 style={styles.npcCard}
                 onPress={() => handleViewDetails(npc)}
               >
@@ -284,6 +382,12 @@ const NPCsTab = ({ campaignUid }) => {
               <Text style={styles.emptyStateText}>
                 Adicione personagens não-jogadores para enriquecer sua campanha!
               </Text>
+              <TouchableOpacity 
+                style={styles.emptyStateButton}
+                onPress={() => setModalVisible(true)}
+              >
+                <Text style={styles.emptyStateButtonText}>Adicionar Primeiro NPC</Text>
+              </TouchableOpacity>
             </View>
           )}
         </ScrollView>
@@ -354,12 +458,25 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#ef4444',
+    alignItems: 'center',
   },
   errorText: {
     color: '#ef4444',
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
+    marginBottom: 12,
+  },
+  retryButton: {
+    backgroundColor: '#ef4444',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
   },
   npcsGrid: {
     padding: 16,
@@ -445,6 +562,18 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     textAlign: 'center',
     lineHeight: 22,
+    marginBottom: 24,
+  },
+  emptyStateButton: {
+    backgroundColor: '#3b9dff',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  emptyStateButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
 

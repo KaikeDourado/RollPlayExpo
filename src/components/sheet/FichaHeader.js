@@ -13,7 +13,8 @@ const FichaHeader = ({
   editMode, 
   onEditToggle, 
   onHeal, 
-  onDamage 
+  onDamage,
+  onBack
 }) => {
   const [pvInputValue, setPvInputValue] = useState('');
   const [showDeathSaves, setShowDeathSaves] = useState(false);
@@ -51,10 +52,16 @@ const FichaHeader = ({
 
   return (
     <View style={styles.fichaHeader}>
-      {/* Botão de Editar */}
-      <TouchableOpacity style={styles.editButton} onPress={onEditToggle}>
-        <Text style={styles.editButtonText}>{editMode ? '✓ Salvar' : '✎ Editar'}</Text>
-      </TouchableOpacity>
+      {/* Header com botões */}
+      <View style={styles.headerButtons}>
+        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+          <Text style={styles.backButtonText}>← Voltar</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.editButton} onPress={onEditToggle}>
+          <Text style={styles.editButtonText}>{editMode ? '✓ Salvar' : '✎ Editar'}</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Informações do Personagem */}
       <View style={styles.characterInfo}>
@@ -182,18 +189,33 @@ const styles = StyleSheet.create({
   fichaHeader: {
     backgroundColor: '#1a1f3a',
     padding: 20,
+    paddingTop: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#2d3653',
   },
+  headerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    marginTop: 14,
+  },
+  backButton: {
+    backgroundColor: '#2d3653',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  backButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
   editButton: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
     backgroundColor: '#3b9dff',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
-    zIndex: 10,
   },
   editButtonText: {
     color: '#ffffff',
@@ -204,7 +226,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 24,
-    marginTop: 8,
   },
   portraitContainer: {
     marginRight: 16,

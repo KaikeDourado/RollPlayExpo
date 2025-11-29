@@ -94,28 +94,62 @@ const AddSessionModal = ({ visible, onClose, onSessionAdded, campaignUid }) => {
 
     setLoading(true);
     try {
-      const sessionData = {
+      // Primeiro, buscar a campanha atual para obter o array de sessões
+      const getCampaignResponse = await fetchSecure(
+        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+        { method: 'GET' }
+      );
+
+      if (!getCampaignResponse.ok) {
+        throw new Error('Não foi possível buscar a campanha');
+      }
+
+      const campaignText = await getCampaignResponse.text();
+      const campaignData = JSON.parse(campaignText);
+      
+      // Extrair os dados da campanha
+      let campaign;
+      if (campaignData.data) {
+        campaign = campaignData.data;
+      } else if (campaignData.campaign) {
+        campaign = campaignData.campaign;
+      } else {
+        campaign = campaignData;
+      }
+
+      // Criar a nova sessão
+      const newSession = {
+        id: Date.now().toString(), // ID único baseado em timestamp
         title: title.trim(),
         date: date.trim() || new Date().toLocaleDateString('pt-BR'),
         duration: duration.trim() || '0h',
         notes: notes.trim(),
-        campaignId: campaignUid,
         createdAt: new Date().toISOString()
       };
 
+      // Adicionar a nova sessão ao array existente
+      const updatedSessoes = [...(campaign.sessoes || []), newSession];
+
+      // Atualizar a campanha com o novo array de sessões
       const response = await fetchSecure(
-        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/sessions`,
+        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
         {
-          method: 'POST',
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(sessionData)
+          body: JSON.stringify({
+            ...campaign,
+            sessoes: updatedSessoes,
+            updatedAt: new Date().toISOString()
+          })
         }
       );
 
+      const responseText = await response.text();
+      console.log('📥 Resposta da criação de sessão:', responseText);
+
       if (response.ok) {
-        const newSession = await response.json();
         Alert.alert('Sucesso', 'Sessão criada com sucesso!');
         setTitle('');
         setDate('');
@@ -123,11 +157,10 @@ const AddSessionModal = ({ visible, onClose, onSessionAdded, campaignUid }) => {
         setNotes('');
         onClose();
         if (onSessionAdded) {
-          onSessionAdded(newSession);
+          onSessionAdded();
         }
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        Alert.alert('Erro', errorData.message || 'Não foi possível criar a sessão.');
+        Alert.alert('Erro', 'Não foi possível criar a sessão.');
       }
     } catch (err) {
       console.error('Erro ao criar sessão:', err);
@@ -236,20 +269,50 @@ const SessionsTab = ({ campaignUid }) => {
     }
 
     setLoading(true);
+    setError('');
+    
     try {
+      console.log('🔍 Buscando sessões da campanha:', campaignUid);
+      
       const response = await fetchSecure(
-        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/sessions`,
+        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
         { method: 'GET' }
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        setSessions(data.sessions || []);
-      } else {
-        setError('Erro ao carregar sessões');
+      console.log('📊 Status da resposta:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`Erro ao buscar campanha: ${response.status}`);
       }
+
+      const responseText = await response.text();
+      console.log('📥 Resposta raw:', responseText);
+      
+      const data = JSON.parse(responseText);
+      console.log('✅ Dados da campanha:', data);
+      
+      // Extrair os dados da campanha
+      let campaignData;
+      if (data.data) {
+        campaignData = data.data;
+      } else if (data.campaign) {
+        campaignData = data.campaign;
+      } else {
+        campaignData = data;
+      }
+      
+      console.log('📦 Campanha extraída:', campaignData);
+      console.log('📖 Sessões array:', campaignData.sessoes);
+      
+      // Se sessoes é um array vazio ou não existe, definir como array vazio
+      const sessionsArray = Array.isArray(campaignData.sessoes) ? campaignData.sessoes : [];
+      
+      console.log(`✅ Total de sessões: ${sessionsArray.length}`);
+      
+      setSessions(sessionsArray);
+      
     } catch (err) {
-      console.error('Erro ao buscar sessões:', err);
+      console.error('❌ Erro ao buscar sessões:', err);
       setError('Não foi possível carregar as sessões');
     } finally {
       setLoading(false);
@@ -276,9 +339,47 @@ const SessionsTab = ({ campaignUid }) => {
           style: 'destructive',
           onPress: async () => {
             try {
+              // Buscar a campanha atual
+              const getCampaignResponse = await fetchSecure(
+                `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+                { method: 'GET' }
+              );
+
+              if (!getCampaignResponse.ok) {
+                throw new Error('Não foi possível buscar a campanha');
+              }
+
+              const campaignText = await getCampaignResponse.text();
+              const campaignData = JSON.parse(campaignText);
+              
+              let campaign;
+              if (campaignData.data) {
+                campaign = campaignData.data;
+              } else if (campaignData.campaign) {
+                campaign = campaignData.campaign;
+              } else {
+                campaign = campaignData;
+              }
+
+              // Remover a sessão do array
+              const updatedSessoes = (campaign.sessoes || []).filter(
+                session => session.id !== sessionId && session._id !== sessionId
+              );
+
+              // Atualizar a campanha
               const response = await fetchSecure(
-                `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/sessions/${sessionId}`,
-                { method: 'DELETE' }
+                `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+                {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    ...campaign,
+                    sessoes: updatedSessoes,
+                    updatedAt: new Date().toISOString()
+                  })
+                }
               );
 
               if (response.ok) {
@@ -327,6 +428,12 @@ const SessionsTab = ({ campaignUid }) => {
       {error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>⚠️ {error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton} 
+            onPress={fetchSessions}
+          >
+            <Text style={styles.retryButtonText}>Tentar Novamente</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView 
@@ -337,7 +444,7 @@ const SessionsTab = ({ campaignUid }) => {
           {sessions.length > 0 ? (
             sessions.map((session, index) => (
               <View
-                key={session.id || session._id}
+                key={session.id || session._id || `session-${index}`}
                 style={styles.sessionCard}
               >
                 {/* Session Number Badge */}
@@ -391,6 +498,12 @@ const SessionsTab = ({ campaignUid }) => {
               <Text style={styles.emptyStateText}>
                 Crie sua primeira sessão para começar a registrar suas aventuras!
               </Text>
+              <TouchableOpacity 
+                style={styles.emptyStateButton}
+                onPress={() => setModalVisible(true)}
+              >
+                <Text style={styles.emptyStateButtonText}>Criar Primeira Sessão</Text>
+              </TouchableOpacity>
             </View>
           )}
         </ScrollView>
@@ -412,6 +525,7 @@ const SessionsTab = ({ campaignUid }) => {
   );
 };
 
+// Estilos permanecem os mesmos, apenas adicionando o botão do empty state
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -475,12 +589,25 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#ef4444',
+    alignItems: 'center',
   },
   errorText: {
     color: '#ef4444',
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
+    marginBottom: 12,
+  },
+  retryButton: {
+    backgroundColor: '#ef4444',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
   },
   sessionsList: {
     flex: 1,
@@ -603,6 +730,18 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     textAlign: 'center',
     lineHeight: 22,
+    marginBottom: 24,
+  },
+  emptyStateButton: {
+    backgroundColor: '#3b9dff',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  emptyStateButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
 

@@ -16,38 +16,71 @@ const AddMapModal = ({ visible, onClose, onMapAdded, campaignUid }) => {
 
     setLoading(true);
     try {
-      const mapData = {
+      // Primeiro, buscar a campanha atual para obter o array de mapas
+      const getCampaignResponse = await fetchSecure(
+        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+        { method: 'GET' }
+      );
+
+      if (!getCampaignResponse.ok) {
+        throw new Error('Não foi possível buscar a campanha');
+      }
+
+      const campaignText = await getCampaignResponse.text();
+      const campaignData = JSON.parse(campaignText);
+      
+      // Extrair os dados da campanha
+      let campaign;
+      if (campaignData.data) {
+        campaign = campaignData.data;
+      } else if (campaignData.campaign) {
+        campaign = campaignData.campaign;
+      } else {
+        campaign = campaignData;
+      }
+
+      // Criar o novo mapa
+      const newMap = {
+        id: Date.now().toString(), // ID único baseado em timestamp
         title: title.trim(),
         description: description.trim(),
         imageUrl: imageUrl.trim(),
-        campaignId: campaignUid,
         createdAt: new Date().toISOString()
       };
 
+      // Adicionar o novo mapa ao array existente
+      const updatedMapas = [...(campaign.mapas || []), newMap];
+
+      // Atualizar a campanha com o novo array de mapas
       const response = await fetchSecure(
-        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/maps`,
+        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
         {
-          method: 'POST',
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(mapData)
+          body: JSON.stringify({
+            ...campaign,
+            mapas: updatedMapas,
+            updatedAt: new Date().toISOString()
+          })
         }
       );
 
+      const responseText = await response.text();
+      console.log('📥 Resposta da criação de mapa:', responseText);
+
       if (response.ok) {
-        const newMap = await response.json();
         Alert.alert('Sucesso', 'Mapa adicionado com sucesso!');
         setTitle('');
         setDescription('');
         setImageUrl('');
         onClose();
         if (onMapAdded) {
-          onMapAdded(newMap);
+          onMapAdded();
         }
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        Alert.alert('Erro', errorData.message || 'Não foi possível adicionar o mapa.');
+        Alert.alert('Erro', 'Não foi possível adicionar o mapa.');
       }
     } catch (err) {
       console.error('Erro ao adicionar mapa:', err);
@@ -144,20 +177,50 @@ const MapsTab = ({ campaignUid }) => {
     }
 
     setLoading(true);
+    setError('');
+    
     try {
+      console.log('🔍 Buscando mapas da campanha:', campaignUid);
+      
       const response = await fetchSecure(
-        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/maps`,
+        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
         { method: 'GET' }
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        setMaps(data.maps || []);
-      } else {
-        setError('Erro ao carregar mapas');
+      console.log('📊 Status da resposta:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`Erro ao buscar campanha: ${response.status}`);
       }
+
+      const responseText = await response.text();
+      console.log('📥 Resposta raw:', responseText);
+      
+      const data = JSON.parse(responseText);
+      console.log('✅ Dados da campanha:', data);
+      
+      // Extrair os dados da campanha
+      let campaignData;
+      if (data.data) {
+        campaignData = data.data;
+      } else if (data.campaign) {
+        campaignData = data.campaign;
+      } else {
+        campaignData = data;
+      }
+      
+      console.log('📦 Campanha extraída:', campaignData);
+      console.log('🗺️ Mapas array:', campaignData.mapas);
+      
+      // Se mapas é um array vazio ou não existe, definir como array vazio
+      const mapsArray = Array.isArray(campaignData.mapas) ? campaignData.mapas : [];
+      
+      console.log(`✅ Total de mapas: ${mapsArray.length}`);
+      
+      setMaps(mapsArray);
+      
     } catch (err) {
-      console.error('Erro ao buscar mapas:', err);
+      console.error('❌ Erro ao buscar mapas:', err);
       setError('Não foi possível carregar os mapas');
     } finally {
       setLoading(false);
@@ -187,9 +250,47 @@ const MapsTab = ({ campaignUid }) => {
           style: 'destructive',
           onPress: async () => {
             try {
+              // Buscar a campanha atual
+              const getCampaignResponse = await fetchSecure(
+                `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+                { method: 'GET' }
+              );
+
+              if (!getCampaignResponse.ok) {
+                throw new Error('Não foi possível buscar a campanha');
+              }
+
+              const campaignText = await getCampaignResponse.text();
+              const campaignData = JSON.parse(campaignText);
+              
+              let campaign;
+              if (campaignData.data) {
+                campaign = campaignData.data;
+              } else if (campaignData.campaign) {
+                campaign = campaignData.campaign;
+              } else {
+                campaign = campaignData;
+              }
+
+              // Remover o mapa do array
+              const updatedMapas = (campaign.mapas || []).filter(
+                map => map.id !== mapId && map._id !== mapId
+              );
+
+              // Atualizar a campanha
               const response = await fetchSecure(
-                `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/maps/${mapId}`,
-                { method: 'DELETE' }
+                `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+                {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    ...campaign,
+                    mapas: updatedMapas,
+                    updatedAt: new Date().toISOString()
+                  })
+                }
               );
 
               if (response.ok) {
@@ -237,6 +338,12 @@ const MapsTab = ({ campaignUid }) => {
       {error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>⚠️ {error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton} 
+            onPress={fetchMaps}
+          >
+            <Text style={styles.retryButtonText}>Tentar Novamente</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView 
@@ -244,9 +351,9 @@ const MapsTab = ({ campaignUid }) => {
           showsVerticalScrollIndicator={false}
         >
           {maps.length > 0 ? (
-            maps.map(map => (
+            maps.map((map, index) => (
               <TouchableOpacity
-                key={map.id || map._id}
+                key={map.id || map._id || `map-${index}`}
                 style={styles.mapCard}
                 onPress={() => handleViewMap(map)}
               >
@@ -288,6 +395,12 @@ const MapsTab = ({ campaignUid }) => {
               <Text style={styles.emptyStateText}>
                 Adicione mapas para ajudar seus jogadores a visualizar o mundo da campanha!
               </Text>
+              <TouchableOpacity 
+                style={styles.emptyStateButton}
+                onPress={() => setModalVisible(true)}
+              >
+                <Text style={styles.emptyStateButtonText}>Adicionar Primeiro Mapa</Text>
+              </TouchableOpacity>
             </View>
           )}
         </ScrollView>
@@ -358,12 +471,25 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#ef4444',
+    alignItems: 'center',
   },
   errorText: {
     color: '#ef4444',
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
+    marginBottom: 12,
+  },
+  retryButton: {
+    backgroundColor: '#ef4444',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
   },
   mapsGrid: {
     padding: 16,
@@ -442,6 +568,18 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     textAlign: 'center',
     lineHeight: 22,
+    marginBottom: 24,
+  },
+  emptyStateButton: {
+    backgroundColor: '#3b9dff',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  emptyStateButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
 

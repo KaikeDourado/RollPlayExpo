@@ -109,7 +109,7 @@ const VisaoGeralSection = ({ data, editMode, onSave }) => {
       </View>
 
       {/* Informações Adicionais */}
-      <View style={styles.card}>
+      <View style={[styles.card, {marginBottom: 40}]}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardIcon}>ℹ️</Text>
           <Text style={styles.cardTitle}>Outras Informações</Text>

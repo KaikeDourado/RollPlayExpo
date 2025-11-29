@@ -42,7 +42,7 @@ export default function RegisterForm() {
       }
 
       const response = await axios.post(
-        'https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/users/',
+        'https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/users/',
         {
           email: email,
           password: password,

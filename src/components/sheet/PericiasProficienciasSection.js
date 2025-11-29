@@ -95,7 +95,7 @@ const PericiasProficienciasSection = ({
       </View>
 
       {/* Card de Proficiências */}
-      <View style={styles.card}>
+      <View style={[styles.card, {marginBottom: 40}]}>
         <View style={styles.header}>
           <Text style={styles.icon}>🛠️</Text>
           <Text style={styles.title}>Proficiências & Idiomas</Text>

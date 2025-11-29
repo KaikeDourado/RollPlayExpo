@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, Modal, TextInput, Share } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, Modal, Share, Clipboard } from 'react-native';
 import { fetchSecure } from '../../lib/fetchSecure';
 
 const PlayerCard = ({ player, onPress }) => (
@@ -11,7 +11,7 @@ const PlayerCard = ({ player, onPress }) => (
       />
     </View>
     <View style={playerCardStyles.info}>
-      <Text style={playerCardStyles.name}>{player.name}</Text>
+      <Text style={playerCardStyles.name}>{player.name || player.displayName || 'Jogador'}</Text>
       {player.character && (
         <>
           <Text style={playerCardStyles.character}>{player.character.name}</Text>
@@ -22,6 +22,9 @@ const PlayerCard = ({ player, onPress }) => (
             <Text style={playerCardStyles.levelText}>Nível {player.character.level}</Text>
           </View>
         </>
+      )}
+      {!player.character && (
+        <Text style={playerCardStyles.noCharacter}>Nenhum personagem atribuído</Text>
       )}
     </View>
   </TouchableOpacity>
@@ -40,7 +43,7 @@ const InviteModal = ({ visible, onClose, campaignCode }) => {
   };
 
   const handleCopyCode = () => {
-    // Você pode adicionar funcionalidade de copiar aqui se necessário
+    Clipboard.setString(campaignCode);
     Alert.alert('Código Copiado', 'O código foi copiado para a área de transferência!');
   };
 
@@ -99,20 +102,50 @@ const PlayersTab = ({ campaignUid }) => {
     }
 
     setLoading(true);
+    setError('');
+    
     try {
+      console.log('🔍 Buscando campanha:', campaignUid);
+      
       const response = await fetchSecure(
-        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignUid}/players`,
+        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
         { method: 'GET' }
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        setPlayers(data.players || []);
-      } else {
-        setError('Erro ao carregar jogadores');
+      console.log('📊 Status da resposta:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`Erro ao buscar campanha: ${response.status}`);
       }
+
+      const responseText = await response.text();
+      console.log('📥 Resposta raw:', responseText);
+      
+      const data = JSON.parse(responseText);
+      console.log('✅ Dados da campanha:', data);
+      
+      // Extrair os dados da campanha
+      let campaignData;
+      if (data.data) {
+        campaignData = data.data;
+      } else if (data.campaign) {
+        campaignData = data.campaign;
+      } else {
+        campaignData = data;
+      }
+      
+      console.log('📦 Campanha extraída:', campaignData);
+      console.log('👥 Players array:', campaignData.players);
+      
+      // Se players é um array vazio ou não existe, definir como array vazio
+      const playersArray = Array.isArray(campaignData.players) ? campaignData.players : [];
+      
+      console.log(`✅ Total de jogadores: ${playersArray.length}`);
+      
+      setPlayers(playersArray);
+      
     } catch (err) {
-      console.error('Erro ao buscar jogadores:', err);
+      console.error('❌ Erro ao buscar jogadores:', err);
       setError('Não foi possível carregar os jogadores');
     } finally {
       setLoading(false);
@@ -120,11 +153,13 @@ const PlayersTab = ({ campaignUid }) => {
   };
 
   const handlePlayerPress = (player) => {
+    const message = player.character 
+      ? `Personagem: ${player.character.name}\nRaça: ${player.character.race}\nClasse: ${player.character.class}\nNível: ${player.character.level}`
+      : 'Nenhum personagem atribuído';
+    
     Alert.alert(
-      player.name,
-      player.character 
-        ? `Personagem: ${player.character.name}\nRaça: ${player.character.race}\nClasse: ${player.character.class}\nNível: ${player.character.level}`
-        : 'Nenhum personagem atribuído',
+      player.name || player.displayName || 'Jogador',
+      message,
       [{ text: 'OK' }]
     );
   };
@@ -158,6 +193,12 @@ const PlayersTab = ({ campaignUid }) => {
       {error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>⚠️ {error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton} 
+            onPress={fetchPlayers}
+          >
+            <Text style={styles.retryButtonText}>Tentar Novamente</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView 
@@ -165,9 +206,9 @@ const PlayersTab = ({ campaignUid }) => {
           showsVerticalScrollIndicator={false}
         >
           {players.length > 0 ? (
-            players.map(player => (
+            players.map((player, index) => (
               <PlayerCard 
-                key={player.id || player._id} 
+                key={player.uid || player.id || player._id || `player-${index}`} 
                 player={player}
                 onPress={() => handlePlayerPress(player)}
               />
@@ -179,6 +220,12 @@ const PlayersTab = ({ campaignUid }) => {
               <Text style={styles.emptyStateText}>
                 Convide seus amigos para começar a aventura!
               </Text>
+              <TouchableOpacity 
+                style={styles.emptyStateButton}
+                onPress={() => setInviteModalVisible(true)}
+              >
+                <Text style={styles.emptyStateButtonText}>Convidar Jogadores</Text>
+              </TouchableOpacity>
             </View>
           )}
         </ScrollView>
@@ -248,17 +295,30 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#ef4444',
+    alignItems: 'center',
   },
   errorText: {
     color: '#ef4444',
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
+    marginBottom: 12,
+  },
+  retryButton: {
+    backgroundColor: '#ef4444',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
   },
   playersGrid: {
     padding: 16,
     gap: 12,
-    paddingBottom: 100, // Espaço extra para o botão de ficha
+    paddingBottom: 100,
   },
   emptyState: {
     alignItems: 'center',
@@ -283,6 +343,18 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     textAlign: 'center',
     lineHeight: 22,
+    marginBottom: 24,
+  },
+  emptyStateButton: {
+    backgroundColor: '#3b9dff',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  emptyStateButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
 
@@ -342,6 +414,12 @@ const playerCardStyles = StyleSheet.create({
     fontSize: 12,
     color: '#3b9dff',
     fontWeight: '600',
+  },
+  noCharacter: {
+    fontSize: 13,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    marginTop: 2,
   },
 });
 

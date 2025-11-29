@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Text, Alert } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { View, StyleSheet, ActivityIndicator, TouchableOpacity, Text, Alert, Platform } from 'react-native';
+import { useRoute, useNavigation } from '@react-navigation/native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { fetchSecure } from '../lib/fetchSecure';
 
 // Importar componentes
@@ -16,7 +17,9 @@ import AnotacoesSection from '../components/sheet/AnotacoesSection';
 
 const SheetPage = () => {
   const route = useRoute();
-  const { id } = route.params;
+  const navigation = useNavigation();
+  const { id, campaignUid } = route.params;
+  
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -32,28 +35,68 @@ const SheetPage = () => {
     setLoading(true);
     setError('');
     try {
-      console.log('Buscando ficha com ID:', id);
+      console.log('🔍 Buscando ficha com ID:', id);
       
       const response = await fetchSecure(
-        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/sheets/${id}`,
+        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/sheets/${id}`,
         { method: 'GET' }
       );
 
-      console.log('Status da resposta:', response.status);
+      console.log('📊 Status da resposta:', response.status);
 
       if (!response.ok) {
         throw new Error(`Erro ao buscar ficha: ${response.status}`);
       }
 
-      const data = await response.json();
-      console.log('Ficha carregada:', data);
-
-      // Se a API retorna { success: true, data: {...} }
-      const sheetData = data.data || data;
+      const rawText = await response.text();
+      console.log('📥 Resposta RAW (texto):', rawText);
       
-      setCharacterData(sheetData);
+      const data = JSON.parse(rawText);
+      console.log('✅ Ficha carregada COMPLETA:', JSON.stringify(data, null, 2));
+      console.log('🔑 Chaves do objeto data:', Object.keys(data));
+
+      let sheetData;
+      
+      if (data.data) {
+        console.log('📦 API retornou em data.data');
+        sheetData = data.data;
+      } else if (data.sheet) {
+        console.log('📦 API retornou em data.sheet');
+        sheetData = data.sheet;
+      } else if (data.character) {
+        console.log('📦 API retornou em data.character');
+        sheetData = data.character;
+      } else {
+        console.log('📦 API retornou direto (sem wrapper)');
+        sheetData = data;
+      }
+      
+      console.log('🎯 Sheet Data FINAL extraído:', sheetData);
+      console.log('🔑 Chaves do sheetData:', Object.keys(sheetData || {}));
+      
+      const normalizedData = {
+        ...sheetData,
+        hp: sheetData.hp || {
+          current: 0,
+          max: 0,
+          temp: 0,
+          hitDice: { type: 'd10', max: 0, spent: 0 }
+        },
+        deathSaves: sheetData.deathSaves || { successes: 0, failures: 0 },
+        attributes: sheetData.attributes || {},
+        skills: sheetData.skills || {},
+        weapons: sheetData.weapons || [],
+        features: sheetData.features || {},
+        inventory: sheetData.inventory || { equipment: [], magicItemsAttuned: [], coins: {} },
+        spellcasting: sheetData.spellcasting || { hasSpellcasting: false },
+        speed: sheetData.speed || { walk: 0, swim: 0, fly: 0, climb: 0, burrow: 0 },
+        ac: sheetData.ac || { value: 10, breakdown: {}, shieldEquipped: false }
+      };
+      
+      console.log('✨ Dados normalizados:', normalizedData);
+      setCharacterData(normalizedData);
     } catch (err) {
-      console.error('Erro ao buscar ficha:', err);
+      console.error('❌ Erro ao buscar ficha:', err);
       setError(err.message || 'Não foi possível carregar a ficha.');
       Alert.alert('Erro', 'Não foi possível carregar a ficha do personagem.');
     } finally {
@@ -62,17 +105,49 @@ const SheetPage = () => {
   };
 
   const handleUpdateCharacter = (section, data) => {
-    if (!editMode) return;
+    console.log(`🔄 Atualizando seção: ${section}`, data);
+    
+    if (!editMode) {
+      console.log('⚠️ Tentativa de atualização fora do modo de edição');
+      return;
+    }
 
-    // Atualiza localmente primeiro (otimista)
     setCharacterData(prev => {
-      if (section === 'general') {
-        return { ...prev, ...data };
+      let updated;
+      
+      switch(section) {
+        case 'general':
+          updated = { ...prev, ...data };
+          break;
+        
+        case 'personality':
+          updated = {
+            ...prev,
+            appearance: data.appearance !== undefined ? data.appearance : prev.appearance,
+            backstoryPersonality: data.backstoryPersonality !== undefined ? data.backstoryPersonality : prev.backstoryPersonality,
+            ideals: data.ideals !== undefined ? data.ideals : prev.ideals,
+            bonds: data.bonds !== undefined ? data.bonds : prev.bonds,
+            flaws: data.flaws !== undefined ? data.flaws : prev.flaws,
+          };
+          break;
+        
+        case 'notes':
+          updated = { ...prev, notes: data };
+          break;
+        
+        case 'hp':
+          updated = { ...prev, hp: data };
+          break;
+        
+        default:
+          updated = {
+            ...prev,
+            [section]: data
+          };
       }
-      return {
-        ...prev,
-        [section]: data
-      };
+      
+      console.log('✅ Dados atualizados localmente:', updated);
+      return updated;
     });
   };
 
@@ -81,25 +156,49 @@ const SheetPage = () => {
 
     setSaving(true);
     try {
-      console.log('Salvando ficha:', characterData);
+      console.log('💾 Salvando ficha:', characterData);
 
       const response = await fetchSecure(
-        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/sheets/${id}`,
+        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/sheets/${id}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify(characterData)
         }
       );
 
+      console.log('📊 Status da resposta de salvamento:', response.status);
+      
+      const responseText = await response.text();
+      console.log('📥 Resposta do servidor:', responseText);
+      
       if (!response.ok) {
-        throw new Error('Erro ao salvar ficha');
+        console.error('❌ Erro na resposta:', responseText);
+        throw new Error(`Erro ao salvar ficha: ${response.status} - ${responseText}`);
       }
 
+      let responseData;
+      try {
+        if (responseText) {
+          responseData = JSON.parse(responseText);
+          console.log('✅ Resposta parseada:', responseData);
+        }
+      } catch (parseError) {
+        console.log('⚠️ Resposta não é JSON, mas salvamento foi bem-sucedido');
+      }
+
+      console.log('✅ Ficha salva com sucesso!');
       Alert.alert('Sucesso', 'Ficha salva com sucesso!');
       setEditMode(false);
+      
     } catch (err) {
-      console.error('Erro ao salvar ficha:', err);
-      Alert.alert('Erro', 'Não foi possível salvar as alterações.');
+      console.error('❌ Erro ao salvar ficha:', err);
+      Alert.alert(
+        'Erro', 
+        `Não foi possível salvar as alterações.\n\nDetalhes: ${err.message}`
+      );
     } finally {
       setSaving(false);
     }
@@ -107,15 +206,32 @@ const SheetPage = () => {
 
   const handleEditToggle = () => {
     if (editMode) {
-      // Salvando ao sair do modo de edição
+      console.log('💾 Saindo do modo de edição - salvando...');
       saveToBackend();
     } else {
+      console.log('✏️ Entrando no modo de edição');
       setEditMode(true);
     }
   };
 
+  const handleBack = () => {
+    console.log('⬅️ Voltando para ProfileSession com campaignUid:', campaignUid);
+    
+    if (campaignUid) {
+      navigation.navigate('ProfileSession', {
+        campaignUid: campaignUid,
+        campaignData: null,
+      });
+    } else {
+      navigation.goBack();
+    }
+  };
+
   const renderSection = () => {
-    if (!characterData) return null;
+    if (!characterData) {
+      console.log('⚠️ characterData é null, não renderizando seção');
+      return null;
+    }
 
     const {
       name, characterClass, subclass, level, race, alignment, background, xp,
@@ -125,18 +241,22 @@ const SheetPage = () => {
       appearance, backstoryPersonality, ideals, bonds, flaws, notes
     } = characterData;
 
+    console.log(`📄 Renderizando seção: ${activeSection}`);
+
     switch (activeSection) {
       case 'visaoGeral':
+        const visaoGeralData = {
+          name, race, characterClass, subclass, level, background, alignment, xp,
+          inspirationHeroica, passivePerception, size, speed, initiative, ac
+        };
         return (
           <VisaoGeralSection
-            data={{
-              name, race, characterClass, subclass, level, background, alignment, xp,
-              inspirationHeroica, passivePerception, size, speed, initiative, ac
-            }}
+            data={visaoGeralData}
             editMode={editMode}
             onSave={(data) => handleUpdateCharacter('general', data)}
           />
         );
+      
       case 'atributos':
         return (
           <AtributosSection
@@ -146,6 +266,7 @@ const SheetPage = () => {
             onSave={(data) => handleUpdateCharacter('attributes', data)}
           />
         );
+      
       case 'pericias':
         return (
           <PericiasProficienciasSection
@@ -158,6 +279,7 @@ const SheetPage = () => {
             onSave={(data) => handleUpdateCharacter('skills', data)}
           />
         );
+      
       case 'ataques':
         return (
           <AtaquesMagiasSection
@@ -167,6 +289,7 @@ const SheetPage = () => {
             onSave={(data) => handleUpdateCharacter('combat', data)}
           />
         );
+      
       case 'inventario':
         return (
           <InventarioSection
@@ -175,6 +298,7 @@ const SheetPage = () => {
             onSave={(data) => handleUpdateCharacter('inventory', data)}
           />
         );
+      
       case 'habilidades':
         return (
           <HabilidadesSection
@@ -183,14 +307,17 @@ const SheetPage = () => {
             onSave={(data) => handleUpdateCharacter('features', data)}
           />
         );
+      
       case 'personalidade':
+        const personalidadeData = { appearance, backstoryPersonality, ideals, bonds, flaws };
         return (
           <PersonalidadeSection
-            data={{ appearance, backstoryPersonality, ideals, bonds, flaws }}
+            data={personalidadeData}
             editMode={editMode}
             onSave={(data) => handleUpdateCharacter('personality', data)}
           />
         );
+      
       case 'anotacoes':
         return (
           <AnotacoesSection
@@ -199,6 +326,7 @@ const SheetPage = () => {
             onSave={(data) => handleUpdateCharacter('notes', data)}
           />
         );
+      
       default:
         return null;
     }
@@ -244,29 +372,35 @@ const SheetPage = () => {
         characterImage={characterData.characterImage}
         characterName={characterData.name}
         characterClass={`${characterData.characterClass} (${characterData.subclass}) - Nível ${characterData.level}`}
-        pvAtual={characterData.hp.current}
-        pvTotal={characterData.hp.max}
-        pvTemp={characterData.hp.temp}
-        hitDice={characterData.hp.hitDice}
-        deathSaves={characterData.deathSaves}
+        pvAtual={characterData.hp?.current || 0}
+        pvTotal={characterData.hp?.max || 0}
+        pvTemp={characterData.hp?.temp || 0}
+        hitDice={characterData.hp?.hitDice || { type: 'd10', max: 0, spent: 0 }}
+        deathSaves={characterData.deathSaves || { successes: 0, failures: 0 }}
         editMode={editMode}
         onEditToggle={handleEditToggle}
         onHeal={(value) => {
+          console.log(`💚 Curando ${value} HP`);
+          if (!characterData.hp) return;
           const newHp = Math.min(characterData.hp.current + value, characterData.hp.max);
           handleUpdateCharacter('hp', { ...characterData.hp, current: newHp });
         }}
         onDamage={(value) => {
+          console.log(`💔 Recebendo ${value} de dano`);
+          if (!characterData.hp) return;
           const newHp = Math.max(characterData.hp.current - value, 0);
           handleUpdateCharacter('hp', { ...characterData.hp, current: newHp });
         }}
+        onBack={handleBack}
       />
-
+      
       <View style={styles.menuContainer}>
-        <ScrollView
+        <KeyboardAwareScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.menu}
           contentContainerStyle={styles.menuContent}
+          keyboardShouldPersistTaps="handled"
         >
           {menuItems.map((item) => (
             <TouchableOpacity
@@ -275,7 +409,10 @@ const SheetPage = () => {
                 styles.menuItem,
                 activeSection === item.id && styles.menuItemActive
               ]}
-              onPress={() => setActiveSection(item.id)}
+              onPress={() => {
+                console.log(`📘 Mudando para seção: ${item.id}`);
+                setActiveSection(item.id);
+              }}
             >
               <Text style={styles.menuItemIcon}>{item.icon}</Text>
               <Text
@@ -288,12 +425,22 @@ const SheetPage = () => {
               </Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <KeyboardAwareScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        extraHeight={Platform.OS === 'ios' ? 130 : 100}
+        extraScrollHeight={Platform.OS === 'ios' ? 130 : 100}
+        keyboardShouldPersistTaps="handled"
+        enableResetScrollToCoords={false}
+      >
         {renderSection()}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Indicador de Salvamento */}
       {saving && (
@@ -396,7 +543,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
     padding: 16,
+    paddingBottom: 40,
   },
   savingOverlay: {
     position: 'absolute',

@@ -23,7 +23,7 @@ const EditCampaignModal = ({ visible, onClose, campaignData, onSave }) => {
       };
 
       const response = await fetchSecure(
-        `https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net/campaigns/${campaignData.id || campaignData._id}`,
+        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignData.id || campaignData._id}`,
         {
           method: 'PUT',
           headers: {
