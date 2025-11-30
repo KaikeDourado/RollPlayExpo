@@ -25,7 +25,7 @@ const CharacterSelectModal = ({ onClose, campaignUid }) => {
 
       // Buscar fichas do usuário que pertencem a esta campanha
       const response = await fetchSecure(
-        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/sheets/token/${campaignUid}`,
+        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/sheets/token/${campaignUid}`,
         { method: 'GET' }
       );
 

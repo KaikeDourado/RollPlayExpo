@@ -23,7 +23,7 @@ const EditCampaignModal = ({ visible, onClose, campaignData, onSave }) => {
       };
 
       const response = await fetchSecure(
-        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignData.id || campaignData._id}`,
+        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignData.id || campaignData._id}`,
         {
           method: 'PUT',
           headers: {
@@ -129,7 +129,7 @@ const GeneralTab = ({ campaignData, campaignUid, onDataUpdate }) => {
     system: localCampaignData?.system || 'D&D 5e',
     sessionsCount: localCampaignData?.sessionsCount || 0,
     createdAt: localCampaignData?.createdAt 
-      ? new Date(localCampaignData.createdAt).toLocaleDateString('pt-BR')
+      ? new Date(localCampaignData.createdAt).getFullYear()
       : 'Data desconhecida',
     description: localCampaignData?.description || 'Sem descrição',
     playersCount: localCampaignData?.players?.length || 0,

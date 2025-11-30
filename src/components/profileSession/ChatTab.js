@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { fetchSecure } from '../../lib/fetchSecure';
 import { authApi } from '../../lib/auth';
-const API_BASE_URL = 'https://rollplaymonolith-e8ezdadmajfvb5fu.eastus-01.azurewebsites.net';
+const API_BASE_URL = 'https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net';
 
 const DiceButton = ({ label, onPress }) => (
   <TouchableOpacity style={diceButtonStyles.button} onPress={onPress} activeOpacity={0.7}>

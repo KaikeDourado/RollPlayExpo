@@ -26,13 +26,13 @@ const SessionModal = ({ visible, onClose, onCampaignCreated }) => {
       const campaignData = {
         userUid: currentUser.uid,
         name: campaignName.trim(),
-        description: campaignDescription.trim() || '',       
+        description: campaignDescription.trim() || '',
       };
 
       console.log('Criando campanha:', campaignData);
 
       const response = await fetchSecure(
-        'https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns',
+        'https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns',
         {
           method: 'POST',
           headers: {
@@ -45,12 +45,12 @@ const SessionModal = ({ visible, onClose, onCampaignCreated }) => {
       if (response.ok) {
         const newCampaign = await response.json();
         console.log('Campanha criada com sucesso:', newCampaign);
-        
+
         Alert.alert('Sucesso', 'Campanha criada com sucesso!');
         setCampaignName('');
         setCampaignDescription('');
         onClose();
-        
+
         // Notifica o componente pai para atualizar a lista
         if (onCampaignCreated) {
           onCampaignCreated(newCampaign);
@@ -73,7 +73,7 @@ const SessionModal = ({ visible, onClose, onCampaignCreated }) => {
       <View style={modalStyles.overlay}>
         <View style={modalStyles.modalContainer}>
           <Text style={modalStyles.modalTitle}>🎲 Criar Nova Campanha</Text>
-          
+
           <Text style={modalStyles.label}>Nome da Campanha</Text>
           <TextInput
             style={modalStyles.input}
@@ -100,8 +100,8 @@ const SessionModal = ({ visible, onClose, onCampaignCreated }) => {
           />
 
           <View style={modalStyles.buttonContainer}>
-            <TouchableOpacity 
-              onPress={handleCreate} 
+            <TouchableOpacity
+              onPress={handleCreate}
               style={[modalStyles.createButton, loading && { opacity: 0.6 }]}
               disabled={loading}
             >
@@ -111,8 +111,8 @@ const SessionModal = ({ visible, onClose, onCampaignCreated }) => {
                 <Text style={modalStyles.createButtonText}>Criar</Text>
               )}
             </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={onClose} 
+            <TouchableOpacity
+              onPress={onClose}
               style={modalStyles.cancelButton}
               disabled={loading}
             >
@@ -146,7 +146,7 @@ const EnterSessionModal = ({ visible, onClose, onSessionJoined }) => {
 
       // Primeiro, buscar a campanha pelo código
       const searchResponse = await fetchSecure(
-        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${sessionCode.trim()}`,
+        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${sessionCode.trim()}`,
         { method: 'GET' }
       );
 
@@ -163,8 +163,8 @@ const EnterSessionModal = ({ visible, onClose, onSessionJoined }) => {
       const campaignData = await searchResponse.json();
       console.log('Campanha encontrada:', campaignData);
 
-      const campaignId = campaignData.id || campaignData._id;
-
+      const campaignId = campaignData.campaign.uid;
+      console.log('ID da campanha encontrada:', campaignId);
       // Verificar se o usuário já está na campanha
       if (campaignData.players && campaignData.players.includes(currentUser.uid)) {
         Alert.alert('Aviso', 'Você já está participando desta campanha!');
@@ -178,7 +178,7 @@ const EnterSessionModal = ({ visible, onClose, onSessionJoined }) => {
 
       // Adicionar o jogador à campanha
       const joinResponse = await fetchSecure(
-        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/user/enter`,
+        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/user/enter`,
         {
           method: 'PATCH',
           headers: {
@@ -194,16 +194,16 @@ const EnterSessionModal = ({ visible, onClose, onSessionJoined }) => {
       if (joinResponse.ok) {
         const updatedCampaign = await joinResponse.json();
         console.log('Entrou na campanha com sucesso:', updatedCampaign);
-        
+
         Alert.alert(
-          'Sucesso!', 
+          'Sucesso!',
           `Você entrou na campanha "${campaignData.name || 'sem nome'}"!`,
           [{ text: 'OK' }]
         );
-        
+
         setSessionCode('');
         onClose();
-        
+
         // Notifica o componente pai para atualizar a lista
         if (onSessionJoined) {
           onSessionJoined(updatedCampaign);
@@ -229,7 +229,7 @@ const EnterSessionModal = ({ visible, onClose, onSessionJoined }) => {
           <Text style={modalStyles.modalSubtitle}>
             Digite o código da sessão para participar
           </Text>
-          
+
           <Text style={modalStyles.label}>Código da Sessão</Text>
           <TextInput
             style={modalStyles.input}
@@ -243,8 +243,8 @@ const EnterSessionModal = ({ visible, onClose, onSessionJoined }) => {
           />
 
           <View style={modalStyles.buttonContainer}>
-            <TouchableOpacity 
-              onPress={handleJoin} 
+            <TouchableOpacity
+              onPress={handleJoin}
               style={[modalStyles.createButton, loading && { opacity: 0.6 }]}
               disabled={loading}
             >
@@ -254,8 +254,8 @@ const EnterSessionModal = ({ visible, onClose, onSessionJoined }) => {
                 <Text style={modalStyles.createButtonText}>Entrar</Text>
               )}
             </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={onClose} 
+            <TouchableOpacity
+              onPress={onClose}
               style={modalStyles.cancelButton}
               disabled={loading}
             >
@@ -291,7 +291,7 @@ export default function CampaignsPage() {
       console.log('Buscando campanhas para o usuário:', userId);
 
       const response = await fetchSecure(
-        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/user/${userId}`,
+        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/user/${userId}`,
         { method: 'GET' }
       );
 
@@ -384,7 +384,7 @@ export default function CampaignsPage() {
       )}
 
       {/* Campaigns List */}
-      <ScrollView 
+      <ScrollView
         style={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContentContainer}
@@ -443,13 +443,13 @@ export default function CampaignsPage() {
       </ScrollView>
 
       {/* Modals */}
-      <SessionModal 
-        visible={isSessionModalOpen} 
+      <SessionModal
+        visible={isSessionModalOpen}
         onClose={() => setIsSessionModalOpen(false)}
         onCampaignCreated={handleCampaignCreated}
       />
-      <EnterSessionModal 
-        visible={isEnterSessionModalOpen} 
+      <EnterSessionModal
+        visible={isEnterSessionModalOpen}
         onClose={() => setIsEnterSessionModalOpen(false)}
         onSessionJoined={handleSessionJoined}
       />

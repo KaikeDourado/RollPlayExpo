@@ -108,7 +108,7 @@ const PlayersTab = ({ campaignUid }) => {
       console.log('🔍 Buscando campanha:', campaignUid);
       
       const response = await fetchSecure(
-        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
         { method: 'GET' }
       );
 

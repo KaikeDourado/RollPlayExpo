@@ -96,7 +96,7 @@ const AddSessionModal = ({ visible, onClose, onSessionAdded, campaignUid }) => {
     try {
       // Primeiro, buscar a campanha atual para obter o array de sessões
       const getCampaignResponse = await fetchSecure(
-        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
         { method: 'GET' }
       );
 
@@ -132,7 +132,7 @@ const AddSessionModal = ({ visible, onClose, onSessionAdded, campaignUid }) => {
 
       // Atualizar a campanha com o novo array de sessões
       const response = await fetchSecure(
-        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
         {
           method: 'PUT',
           headers: {
@@ -275,7 +275,7 @@ const SessionsTab = ({ campaignUid }) => {
       console.log('🔍 Buscando sessões da campanha:', campaignUid);
       
       const response = await fetchSecure(
-        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
         { method: 'GET' }
       );
 
@@ -341,7 +341,7 @@ const SessionsTab = ({ campaignUid }) => {
             try {
               // Buscar a campanha atual
               const getCampaignResponse = await fetchSecure(
-                `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+                `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
                 { method: 'GET' }
               );
 
@@ -368,7 +368,7 @@ const SessionsTab = ({ campaignUid }) => {
 
               // Atualizar a campanha
               const response = await fetchSecure(
-                `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+                `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
                 {
                   method: 'PUT',
                   headers: {

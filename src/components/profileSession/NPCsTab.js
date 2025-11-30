@@ -18,7 +18,7 @@ const AddNPCModal = ({ visible, onClose, onNPCAdded, campaignUid }) => {
     try {
       // Primeiro, buscar a campanha atual para obter o array de NPCs
       const getCampaignResponse = await fetchSecure(
-        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
         { method: 'GET' }
       );
 
@@ -53,7 +53,7 @@ const AddNPCModal = ({ visible, onClose, onNPCAdded, campaignUid }) => {
 
       // Atualizar a campanha com o novo array de NPCs
       const response = await fetchSecure(
-        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
         {
           method: 'PUT',
           headers: {
@@ -182,7 +182,7 @@ const NPCsTab = ({ campaignUid }) => {
       console.log('🔍 Buscando NPCs da campanha:', campaignUid);
       
       const response = await fetchSecure(
-        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
         { method: 'GET' }
       );
 
@@ -242,7 +242,7 @@ const NPCsTab = ({ campaignUid }) => {
             try {
               // Buscar a campanha atual
               const getCampaignResponse = await fetchSecure(
-                `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+                `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
                 { method: 'GET' }
               );
 
@@ -269,7 +269,7 @@ const NPCsTab = ({ campaignUid }) => {
 
               // Atualizar a campanha
               const response = await fetchSecure(
-                `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+                `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
                 {
                   method: 'PUT',
                   headers: {

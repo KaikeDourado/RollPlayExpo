@@ -38,7 +38,7 @@ const SheetPage = () => {
       console.log('🔍 Buscando ficha com ID:', id);
       
       const response = await fetchSecure(
-        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/sheets/${id}`,
+        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/sheets/${id}`,
         { method: 'GET' }
       );
 
@@ -159,7 +159,7 @@ const SheetPage = () => {
       console.log('💾 Salvando ficha:', characterData);
 
       const response = await fetchSecure(
-        `https://rollplaybackend-d8a5arbvaae7bsej.eastus-01.azurewebsites.net/sheets/${id}`,
+        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/sheets/${id}`,
         {
           method: 'PATCH',
           headers: {
