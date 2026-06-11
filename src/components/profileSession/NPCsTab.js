@@ -475,9 +475,19 @@ const styles = StyleSheet.create({
   npcRoleBadge: { backgroundColor: '#0a0e27', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 6, alignSelf: 'flex-start', borderWidth: 1, borderColor: '#2d3653', marginBottom: 6 },
   npcRole: { fontSize: 12, color: '#3b9dff', fontWeight: '600' },
   npcDescription: { fontSize: 13, color: '#9ca3af', lineHeight: 18 },
-  actionButtons: { flexDirection: 'row', gap: 6, marginLeft: 8 },
-  iconButton: { padding: 6 },
-  iconButtonText: { fontSize: 18 },
+  actionButtons: {
+    flexDirection: 'row',
+    marginLeft: 8,
+  },
+
+  iconButton: {
+    padding: 8,
+    marginLeft: 4,
+  },
+
+  iconButtonText: {
+    fontSize: 20,
+  },
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60, paddingHorizontal: 40 },
   emptyStateIcon: { fontSize: 64, marginBottom: 16, opacity: 0.5 },
   emptyStateTitle: { fontSize: 20, fontWeight: '700', color: '#ffffff', marginBottom: 8, textAlign: 'center' },

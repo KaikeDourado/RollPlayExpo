@@ -528,24 +528,25 @@ const MapsTab = ({ campaignUid }) => {
                     }
                     style={styles.mapImage}
                   />
-                  <TouchableOpacity
-                    style={styles.deleteMapButton}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      handleEditMap(map);
-                    }}
-                  >
-                    <Text style={styles.deleteMapButtonText}>✏️</Text>
-                  </TouchableOpacity>
                   <View style={styles.mapOverlay}>
                     <TouchableOpacity
-                      style={styles.deleteMapButton}
+                      style={styles.mapActionButton}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleEditMap(map);
+                      }}
+                    >
+                      <Text style={styles.mapActionButtonText}>✏️</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.mapActionButton}
                       onPress={(e) => {
                         e.stopPropagation();
                         handleDeleteMap(map.id || map._id);
                       }}
                     >
-                      <Text style={styles.deleteMapButtonText}>🗑️</Text>
+                      <Text style={styles.mapActionButtonText}>🗑️</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -703,13 +704,17 @@ const styles = StyleSheet.create({
     top: 0,
     right: 0,
     padding: 8,
+    flexDirection: 'row',
+    gap: 6,
   },
-  deleteMapButton: {
+
+  mapActionButton: {
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     borderRadius: 8,
     padding: 6,
   },
-  deleteMapButtonText: {
+
+  mapActionButtonText: {
     fontSize: 16,
   },
   mapInfo: {
