@@ -50,7 +50,7 @@ export default function ProfilePage() {
           uid: currentUser.uid,
           displayName: userDataFromBackend.displayName || currentUser.displayName,
           email: userDataFromBackend.email || currentUser.email,
-          title: userDataFromBackend.title || '',
+          title: userDataFromBackend.title || 'Player de RPG',
           bio: userDataFromBackend.bio || '',
           userPhoto: userDataFromBackend.userPhoto || currentUser.userPhoto,
           createdAt: new Date(currentUser.metadata?.creationTime).toISOString() || new Date().toISOString(),
@@ -108,7 +108,6 @@ export default function ProfilePage() {
   }
 
   const campaignsCount = campaigns.length;
-  const charactersCount = characters.length;
   const memberYear = new Date(user.createdAt).getFullYear();
 
   const handleEditClick = () => {
@@ -247,12 +246,6 @@ export default function ProfilePage() {
             <Text style={styles.statIcon}>🎲</Text>
             <Text style={styles.statNumber}>{campaignsCount}</Text>
             <Text style={styles.statLabel}>Campanhas</Text>
-          </View>
-
-          <View style={styles.statBox}>
-            <Text style={styles.statIcon}>🛡️</Text>
-            <Text style={styles.statNumber}>{charactersCount}</Text>
-            <Text style={styles.statLabel}>Personagens</Text>
           </View>
         </View>
 

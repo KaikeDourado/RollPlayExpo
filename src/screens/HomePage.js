@@ -28,11 +28,12 @@ export default function HomePage() {
         </View>
         <FeatureCarousel
           data={[
-            { icon: "📝", title: "FICHAS DE PERSONAGENS", description: "Crie e gerencie fichas de personagem para seus jogos de rpg." },
-            { icon: "📅", title: "CRIAÇÃO DE SESSÕES", description: "Organize sessões de jogo com agendamento fácil." },
-            { icon: "💬", title: "CHAT INTEGRADO", description: "Converse com seu grupo sem sair da plataforma." },
-            { icon: "🎲", title: "ROLAGEM DE DADOS", description: "Rolagens com suporte para fórmulas avançadas." },
-            { icon: "📊", title: "AGENDAMENTO DE SESSÕES", description: "Envie lembretes automáticos para participantes." },
+            { icon: "⚔️", title: "SUPORTE A SISTEMAS", description: "Utilize fichas e recursos pensados para diferentes sistemas de RPG, com expansão contínua para novas regras e estilos de jogo." },
+            { icon: "📝", title: "FICHAS DE PERSONAGENS", description: "Crie e gerencie fichas de personagem para seus jogos de rpg, com atualização em tempo real e compartilhamento fácil." },
+            { icon: "📚", title: "GESTÃO DE CAMPANHAS", description: "Organize campanhas, acompanhe aventuras em andamento e mantenha informações importantes da mesa reunidas em um só lugar." },
+            { icon: "👥", title: "GERENCIAMENTO DE GRUPOS", description: "Controle participantes, convites e permissões da mesa, facilitando a organização entre mestres e jogadores." },
+            { icon: "💬", title: "CHAT INTEGRADO", description: "Comunique-se com outros através de nosso chat integrado, tudo reunido na mesma plataforma." },
+            { icon: "🎲", title: "ROLAGEM DE DADOS", description: "Sistema avançado de rolagem de dados com suporte para fórmulas complexas e histórico de rolagens." }
           ]}
         />
       </View>
@@ -40,10 +41,12 @@ export default function HomePage() {
       <View style={styles.faqSection}>
         <Text style={styles.faqTitle}>PERGUNTAS FREQUENTES</Text>
         <View style={styles.faqGrid}>
+          <FAQItem question="POSSO USAR O ROLL & PLAY EM QUALQUER DISPOSITIVO?" answer="Sim, o Roll & Play é totalmente responsivo e funciona em qualquer dispositivo: desktop, móveis, tablets e consoles. Você pode acessar suas fichas e sessões de qualquer lugar." />
           <FAQItem question="QUAIS SISTEMAS DE RPG SÃO SUPORTADOS?" answer="Atualmente, o roll & play oferece suporte exclusivo ao sistemas d&d 5e (e 5.5e). No entanto, nosso objetivo é expandir para outros sistemas populares, além de permitir a criação de fichas personalizadas para tais sistemas." />
           <FAQItem question="COMO FAÇO PARA CONVIDAR MEUS AMIGOS PARA UMA SESSÃO?" answer="Ao criar uma sessão, você receberá um link de convite que pode ser compartilhado com seus amigos. Eles precisarão ter uma conta no roll & play para participar." />
           <FAQItem question="PRECISO CRIAR UMA CONTA PARA USAR?" answer="Sim, é necessário criar uma conta para acessar as funcionalidades do roll & play. O registro é rápido e gratuito, e só pedimos informações essenciais." />
           <FAQItem question="VOCÊS TÊM PLANOS PARA ADICIONAR NOVAS FUNCIONALIDADES?" answer="Absolutamente! Estamos constantemente trabalhando em novas funcionalidades e melhorias com base no feedback da comunidade. Fique atento às atualizações!" />
+          <FAQItem question="O ROLL & PLAY É UM VTT COMPLETO?" answer="Não. O Roll & Play não busca substituir plataformas com grid, mapas e movimentação tática. Nosso foco é a gestão de mesas, campanhas, sessões, fichas de personagem e organização dos grupos de RPG." />
         </View>
       </View>
     </ScrollView>

@@ -24,6 +24,8 @@ export default function RegisterForm() {
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
 
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+
   const handleSubmit = async () => {
     setError('');
     setLoading(true);
@@ -31,6 +33,12 @@ export default function RegisterForm() {
     try {
       if (!username || !email || !password) {
         throw new Error('Por favor, preencha todos os campos.');
+      }
+
+      if (!passwordRegex.test(password)) {
+        throw new Error(
+          'A senha deve conter pelo menos 8 caracteres, uma letra maiúscula, uma minúscula, um número e um caractere especial.'
+        );
       }
 
       if (password !== confirmPassword) {
@@ -107,7 +115,9 @@ export default function RegisterForm() {
           value={password}
           onChangeText={setPassword}
         />
-        <Text style={styles.note}>A senha deve ter pelo menos 8 caracteres</Text>
+        <Text style={styles.note}>
+          A senha deve ter pelo menos 8 caracteres, letra maiúscula, minúscula, número e caractere especial.
+        </Text>
       </View>
 
       <View style={styles.inputGroup}>
@@ -132,10 +142,10 @@ export default function RegisterForm() {
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       <TouchableOpacity
-       style={[
-        styles.registerButton,
-        loading && { opacity: 0.7 }
-        ]} 
+        style={[
+          styles.registerButton,
+          loading && { opacity: 0.7 }
+        ]}
         onPress={handleSubmit}
         disabled={loading}>
         <Text style={styles.registerButtonText}>{loading ? 'Criando conta...' : 'Criar conta gratuita'}</Text>

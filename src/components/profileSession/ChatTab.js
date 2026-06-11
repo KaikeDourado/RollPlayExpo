@@ -141,14 +141,14 @@ const ChatTab = ({ campaignUid }) => {
     }
   };
 
-  const renderMessage = (message) => {
+  const renderMessage = (message, index) => {
     const isCurrentUser = message.senderId === currentUser?.uid;
     const isMaster = message.senderRole === 'master' || message.sender === 'Mestre';
     const isDiceRoll = message.type === 'dice';
 
     if (isDiceRoll) {
       return (
-        <View key={message.id || message._id} style={styles.diceMessageContainer}>
+        <View key={message.id || message._id || message.uid || `message-${index}`} style={styles.diceMessageContainer}>
           <View style={styles.diceMessageBubble}>
             <Text style={styles.diceMessageSender}>{message.senderName}</Text>
             <Text style={styles.diceMessageContent}>{message.content}</Text>
@@ -159,7 +159,7 @@ const ChatTab = ({ campaignUid }) => {
 
     return (
       <View
-        key={message.id || message._id}
+        key={message.id || message._id || message.uid || `message-${index}`}
         style={[
           styles.messageContainer,
           isCurrentUser && styles.messageContainerRight
@@ -225,7 +225,7 @@ const ChatTab = ({ campaignUid }) => {
         onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
       >
         {messages.length > 0 ? (
-          messages.map(renderMessage)
+          messages.map((message, index) => renderMessage(message, index))
         ) : (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateIcon}>💬</Text>

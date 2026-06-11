@@ -5,7 +5,6 @@ const CustomDrawer = ({ isVisible, onClose, activeTab, setActiveTab, campaignDat
   const menuItems = [
     { name: 'GERAL', label: 'Geral', icon: '📊', description: 'Visão geral da campanha' },
     { name: 'JOGADORES', label: 'Jogadores', icon: '⚔️', description: 'Gerenciar jogadores' },
-    { name: 'SESSÕES', label: 'Sessões', icon: '📖', description: 'Histórico de sessões' },
     { name: 'NOTAS', label: 'Notas', icon: '📝', description: 'Anotações importantes' },
     { name: 'MAPAS', label: 'Mapas', icon: '🗺️', description: 'Mapas e localidades' },
     { name: 'NPCS', label: 'NPCs', icon: '🧙', description: 'Personagens não-jogadores' },
@@ -96,13 +95,6 @@ const CustomDrawer = ({ isVisible, onClose, activeTab, setActiveTab, campaignDat
                 {campaignData?.players?.length || 0}
               </Text>
               <Text style={styles.footerStatLabel}>Jogadores</Text>
-            </View>
-            <View style={styles.footerDivider} />
-            <View style={styles.footerStat}>
-              <Text style={styles.footerStatValue}>
-                {campaignData?.sessionsCount || 0}
-              </Text>
-              <Text style={styles.footerStatLabel}>Sessões</Text>
             </View>
           </View>
         </View>

@@ -362,7 +362,7 @@ const MapsTab = ({ campaignUid }) => {
                     source={
                       map.imageUrl 
                         ? { uri: map.imageUrl } 
-                        : require("../../../assets/default-campaign-img.png")
+                        : require("../../../assets/default-map-img.png")
                     } 
                     style={styles.mapImage} 
                   />

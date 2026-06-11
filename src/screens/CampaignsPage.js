@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { authApi } from '../lib/auth';
 import { fetchSecure } from '../lib/fetchSecure';
 
@@ -8,6 +8,7 @@ import { fetchSecure } from '../lib/fetchSecure';
 const SessionModal = ({ visible, onClose, onCampaignCreated }) => {
   const [campaignName, setCampaignName] = React.useState('');
   const [campaignDescription, setCampaignDescription] = React.useState('');
+  const [campaignSystem, setCampaignSystem] = React.useState('D&D 5e');
   const [loading, setLoading] = React.useState(false);
 
   const handleCreate = async () => {
@@ -27,6 +28,7 @@ const SessionModal = ({ visible, onClose, onCampaignCreated }) => {
         userUid: currentUser.uid,
         name: campaignName.trim(),
         description: campaignDescription.trim() || '',
+        system: campaignSystem,
       };
 
       console.log('Criando campanha:', campaignData);
@@ -98,6 +100,44 @@ const SessionModal = ({ visible, onClose, onCampaignCreated }) => {
             maxLength={200}
             editable={!loading}
           />
+
+          <Text style={modalStyles.label}>Sistema</Text>
+
+          <View style={modalStyles.selectContainer}>
+            <TouchableOpacity
+              style={[
+                modalStyles.selectOption,
+                campaignSystem === 'D&D 5e' && modalStyles.selectOptionActive
+              ]}
+              onPress={() => setCampaignSystem('D&D 5e')}
+            >
+              <Text
+                style={[
+                  modalStyles.selectOptionText,
+                  campaignSystem === 'D&D 5e' && modalStyles.selectOptionTextActive
+                ]}
+              >
+                D&D 5e
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                modalStyles.selectOption,
+                campaignSystem === 'D&D 5.5e' && modalStyles.selectOptionActive
+              ]}
+              onPress={() => setCampaignSystem('D&D 5.5e')}
+            >
+              <Text
+                style={[
+                  modalStyles.selectOptionText,
+                  campaignSystem === 'D&D 5.5e' && modalStyles.selectOptionTextActive
+                ]}
+              >
+                D&D 5.5e
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           <View style={modalStyles.buttonContainer}>
             <TouchableOpacity
@@ -334,9 +374,11 @@ export default function CampaignsPage() {
     fetchCampaigns();
   };
 
-  useEffect(() => {
-    fetchCampaigns();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchCampaigns();
+    }, [])
+  );
 
   if (loading) {
     return (
@@ -391,14 +433,14 @@ export default function CampaignsPage() {
       >
         {campaigns.length > 0 ? (
           <View style={styles.campaignsList}>
-            {campaigns.map((campaign) => (
+            {campaigns.map((campaign, index) => (
               <TouchableOpacity
-                key={campaign.id || campaign._id}
+                key={campaign.uid || campaign._id || campaign.id || `campaign-${index}`}
                 style={styles.campaignCard}
                 onPress={() => {
                   console.log('Navegando para campanha:', campaign);
                   navigation.navigate('ProfileSession', {
-                    campaignUid: campaign.id || campaign._id,
+                    campaignUid: campaign.uid || campaign._id || campaign.id,
                     campaignData: campaign
                   });
                 }}
@@ -712,6 +754,35 @@ const modalStyles = StyleSheet.create({
   textArea: {
     minHeight: 100,
     textAlignVertical: 'top',
+  },
+  selectContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+
+  selectOption: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#2d3653',
+    backgroundColor: '#0a0e27',
+    alignItems: 'center',
+  },
+
+  selectOptionActive: {
+    backgroundColor: '#3b9dff',
+    borderColor: '#3b9dff',
+  },
+
+  selectOptionText: {
+    color: '#9ca3af',
+    fontWeight: '600',
+  },
+
+  selectOptionTextActive: {
+    color: '#ffffff',
   },
   buttonContainer: {
     flexDirection: 'row',

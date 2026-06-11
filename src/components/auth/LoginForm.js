@@ -79,16 +79,6 @@ export default function LoginForm() {
         />
       </View>
 
-      {/* CHECKBOX */}
-      <TouchableOpacity
-        style={styles.rememberMeContainer}
-        onPress={() => setRemember(!remember)}
-      >
-        <View style={[styles.checkbox, remember && styles.checkboxChecked]}>
-        </View>
-        <Text style={styles.rememberMeText}>Lembrar de mim</Text>
-      </TouchableOpacity>
-
       {/* ERRO */}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -156,30 +146,6 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     color: '#000',
-  },
-
-  /* CHECKBOX */
-  rememberMeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 25,
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#3B82F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  checkboxChecked: {
-    backgroundColor: '#3B82F6',
-  },
-  rememberMeText: {
-    color: '#FFFFFF',
-    fontSize: 16,
   },
 
   /* ERRO */

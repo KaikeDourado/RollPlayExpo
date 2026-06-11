@@ -29,8 +29,12 @@ export async function fetchSecure(url, init = {}) {
       console.warn('Erro 404 - Nenhum dado encontrado para:', url);
       const errorText = await response.text();
       console.log('Resposta do servidor:', errorText);
-      // Retornar a resposta mesmo assim para o código tratar
-      return response;
+      // Retornar uma nova Response para evitar "Already read"
+      return new Response(errorText, { 
+        status: response.status, 
+        statusText: response.statusText,
+        headers: response.headers 
+      });
     }
 
     // Se o status for 500, é erro do servidor
@@ -79,7 +83,13 @@ export async function fetchSecure(url, init = {}) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return response;
+    // Fazer uma cópia do response body para evitar "Already read"
+    const responseText = await response.text();
+    return new Response(responseText, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers
+    });
   } catch (error) {
     console.error('Erro na requisição segura:', error.message);
     

@@ -349,7 +349,7 @@ const NPCsTab = ({ campaignUid }) => {
               >
                 <View style={styles.npcAvatarContainer}>
                   <Image 
-                    source={npc.avatar ? { uri: npc.avatar } : require("../../../assets/default-profile-img.png")} 
+                    source={npc.avatar ? { uri: npc.avatar } : require("../../../assets/default-npc-img.png")} 
                     style={styles.npcAvatar} 
                   />
                 </View>

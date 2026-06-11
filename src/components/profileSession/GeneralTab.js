@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { fetchSecure } from '../../lib/fetchSecure';
 
@@ -23,7 +23,7 @@ const EditCampaignModal = ({ visible, onClose, campaignData, onSave }) => {
       };
 
       const response = await fetchSecure(
-        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignData.id || campaignData._id}`,
+        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignData.uid}`,
         {
           method: 'PUT',
           headers: {
@@ -34,11 +34,14 @@ const EditCampaignModal = ({ visible, onClose, campaignData, onSave }) => {
       );
 
       if (response.ok) {
-        const updated = await response.json();
+        const data = await response.json();
+        const updatedCampaign = data.campaign;
+
         Alert.alert('Sucesso', 'Campanha atualizada com sucesso!');
         onClose();
+
         if (onSave) {
-          onSave(updated);
+          onSave(updatedCampaign);
         }
       } else {
         const errorData = await response.json().catch(() => ({}));
@@ -57,7 +60,7 @@ const EditCampaignModal = ({ visible, onClose, campaignData, onSave }) => {
       <View style={modalStyles.overlay}>
         <View style={modalStyles.modalContainer}>
           <Text style={modalStyles.modalTitle}>✏️ Editar Campanha</Text>
-          
+
           <Text style={modalStyles.label}>Nome</Text>
           <TextInput
             style={modalStyles.input}
@@ -95,8 +98,8 @@ const EditCampaignModal = ({ visible, onClose, campaignData, onSave }) => {
           />
 
           <View style={modalStyles.buttonContainer}>
-            <TouchableOpacity 
-              onPress={handleSave} 
+            <TouchableOpacity
+              onPress={handleSave}
               style={[modalStyles.saveButton, loading && { opacity: 0.6 }]}
               disabled={loading}
             >
@@ -106,8 +109,8 @@ const EditCampaignModal = ({ visible, onClose, campaignData, onSave }) => {
                 <Text style={modalStyles.saveButtonText}>Salvar</Text>
               )}
             </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={onClose} 
+            <TouchableOpacity
+              onPress={onClose}
               style={modalStyles.cancelButton}
               disabled={loading}
             >
@@ -124,21 +127,28 @@ const GeneralTab = ({ campaignData, campaignUid, onDataUpdate }) => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [localCampaignData, setLocalCampaignData] = useState(campaignData);
 
+  useEffect(() => {
+  setLocalCampaignData(campaignData);
+}, [campaignData]);
+
+  const createdAtDate = localCampaignData?.createdAt ? new Date(localCampaignData.createdAt) : null;
+  const formattedCreatedAt = createdAtDate && !isNaN(createdAtDate.getTime())
+    ? createdAtDate.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+    : 'Data desconhecida';
+
   const campaign = {
     name: localCampaignData?.name || 'Nome da Campanha',
     system: localCampaignData?.system || 'D&D 5e',
-    sessionsCount: localCampaignData?.sessionsCount || 0,
-    createdAt: localCampaignData?.createdAt 
-      ? new Date(localCampaignData.createdAt).getFullYear()
-      : 'Data desconhecida',
+    createdAt: formattedCreatedAt,
     description: localCampaignData?.description || 'Sem descrição',
     playersCount: localCampaignData?.players?.length || 0,
-    profileImage: localCampaignData?.profileImage 
+    profileImage: localCampaignData?.profileImage
       ? { uri: localCampaignData.profileImage }
       : require('../../../assets/default-campaign-img.png'),
-    bannerImage: localCampaignData?.bannerImage
-      ? { uri: localCampaignData.bannerImage }
-      : require('../../../assets/default-profile-img.png'),
   };
 
   const handleSave = (updatedData) => {
@@ -149,24 +159,16 @@ const GeneralTab = ({ campaignData, campaignUid, onDataUpdate }) => {
   };
 
   return (
-    <ScrollView 
-      style={styles.container} 
+    <ScrollView
+      style={styles.container}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.scrollContent}
     >
-      {/* Banner */}
-      <View style={styles.bannerContainer}>
-        <Image 
-          source={campaign.bannerImage}
-          style={styles.bannerImage}
-        />
-        <View style={styles.bannerOverlay} />
-      </View>
 
       {/* Profile Image */}
       <View style={styles.profileSection}>
         <View style={styles.profileImageContainer}>
-          <Image 
+          <Image
             source={campaign.profileImage}
             style={styles.profileImage}
           />
@@ -184,7 +186,7 @@ const GeneralTab = ({ campaignData, campaignUid, onDataUpdate }) => {
               <Text style={styles.systemText}>🎲 {campaign.system}</Text>
             </View>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.editButton}
             onPress={() => setEditModalVisible(true)}
           >
@@ -196,18 +198,10 @@ const GeneralTab = ({ campaignData, campaignUid, onDataUpdate }) => {
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
             <View style={styles.statIconContainer}>
-              <Text style={styles.statIcon}>📖</Text>
-            </View>
-            <Text style={styles.statValue}>{campaign.sessionsCount}</Text>
-            <Text style={styles.statLabel}>Sessões</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <View style={styles.statIconContainer}>
               <Text style={styles.statIcon}>👥</Text>
             </View>
             <Text style={styles.statValue}>{campaign.playersCount}</Text>
-            <Text style={styles.statLabel}>Jogadores</Text>
+            <Text style={styles.statLabel}>Jogador(es)</Text>
           </View>
         </View>
 
@@ -237,7 +231,7 @@ const GeneralTab = ({ campaignData, campaignUid, onDataUpdate }) => {
         </View>
       </View>
 
-      <EditCampaignModal 
+      <EditCampaignModal
         visible={editModalVisible}
         onClose={() => setEditModalVisible(false)}
         campaignData={localCampaignData}
@@ -255,26 +249,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 0, // Espaço extra para o botão de ficha
   },
-  bannerContainer: {
-    height: 200,
-    position: 'relative',
-  },
-  bannerImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  bannerOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 100,
-    backgroundColor: 'linear-gradient(transparent, #0a0e27)',
-  },
   profileSection: {
     alignItems: 'center',
-    marginTop: -70,
+    marginTop: 10,
     marginBottom: 20,
     zIndex: 10,
   },
@@ -284,15 +261,16 @@ const styles = StyleSheet.create({
   profileImage: {
     width: 140,
     height: 140,
-    borderRadius: 70,
+    borderRadius: 18,
     borderWidth: 6,
     borderColor: '#0a0e27',
+    resizeMode: 'cover',
   },
   profileImageBorder: {
     position: 'absolute',
     width: 140,
     height: 140,
-    borderRadius: 70,
+    borderRadius: 18,
     borderWidth: 3,
     borderColor: '#3b9dff',
     top: 0,
