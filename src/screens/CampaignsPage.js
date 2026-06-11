@@ -201,18 +201,31 @@ const EnterSessionModal = ({ visible, onClose, onSessionJoined }) => {
       }
 
       const campaignData = await searchResponse.json();
-      console.log('Campanha encontrada:', campaignData);
+      const campaign = campaignData.campaign;
 
-      const campaignId = campaignData.campaign.uid;
-      console.log('ID da campanha encontrada:', campaignId);
-      // Verificar se o usuário já está na campanha
-      if (campaignData.players && campaignData.players.includes(currentUser.uid)) {
-        Alert.alert('Aviso', 'Você já está participando desta campanha!');
+      const campaignId = campaign.uid;
+
+      const isOwner = campaign.userUid === currentUser.uid;
+
+      const isPlayer = (campaign.players || []).some(player => {
+        if (typeof player === 'string') {
+          return player === currentUser.uid;
+        }
+
+        return player?.userUid === currentUser.uid || player?.uid === currentUser.uid;
+      });
+
+      if (isOwner) {
+        Alert.alert('Aviso', 'Você já é o mestre desta campanha.');
         setSessionCode('');
         onClose();
-        if (onSessionJoined) {
-          onSessionJoined(campaignData);
-        }
+        return;
+      }
+
+      if (isPlayer) {
+        Alert.alert('Aviso', 'Você já participa desta campanha.');
+        setSessionCode('');
+        onClose();
         return;
       }
 
