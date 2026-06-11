@@ -24,6 +24,7 @@ import ChatTab from '../components/profileSession/ChatTab';
 import CustomDrawer from '../components/profileSession/CustomDrawer';
 import CharacterSelectModal from '../components/profileSession/CharacterSelectModal';
 import { fetchSecure } from '../lib/fetchSecure';
+import { authApi } from '../lib/auth';
 
 const screenHeight = Dimensions.get('window').height;
 
@@ -83,50 +84,36 @@ export default function ProfileSessionPage() {
 
   useEffect(() => {
     const fetchSession = async () => {
-      // Se os dados já foram passados, não precisa fazer requisição
-      if (campaignData) {
-        setLoading(false);
-        return;
-      }
-
-      // Se não tem dados, tenta buscar da API
       try {
-        console.log('Buscando dados da campanha:', campaignUid);
-        
+        setLoading(!campaignData);
+
         const response = await fetchSecure(
           `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
           { method: 'GET' }
         );
 
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Dados da campanha recebidos:', data);
-          setSessionData(data);
-        } else {
-          setError('Erro ao carregar dados da campanha');
-          // Dados padrão como fallback
-          setSessionData({
-            uid: campaignUid,
-            name: `Campanha ${campaignUid}`,
-            description: 'Campanha sem informações carregadas',
-          });
+        if (!response.ok) {
+          throw new Error('Erro ao carregar dados da campanha');
         }
+
+        const data = await response.json();
+        const campaign = data.campaign || data.data || data;
+
+        setSessionData(campaign);
       } catch (err) {
         console.error('Erro ao buscar campanha:', err.message);
         setError(err.message);
-        // Dados padrão como fallback
-        setSessionData({
-          uid: campaignUid,
-          name: `Campanha ${campaignUid}`,
-          description: 'Erro ao carregar dados',
-        });
+
+        if (campaignData) {
+          setSessionData(campaignData);
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchSession();
-  }, [campaignUid, campaignData]);
+  }, [campaignUid]);
 
 
 
@@ -151,13 +138,13 @@ export default function ProfileSessionPage() {
       </View>
     );
 
-  if (error && !sessionData) 
+  if (error && !sessionData)
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorIcon}>⚠️</Text>
         <Text style={styles.errorTitle}>Erro ao carregar</Text>
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
@@ -166,12 +153,12 @@ export default function ProfileSessionPage() {
       </View>
     );
 
-  if (!sessionData) 
+  if (!sessionData)
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorIcon}>🔍</Text>
         <Text style={styles.errorTitle}>Sessão não encontrada</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
@@ -180,12 +167,30 @@ export default function ProfileSessionPage() {
       </View>
     );
 
+  const currentUser = authApi.getCurrentUser();
+  const currentUserUid = currentUser?.uid;
+  const isMaster = sessionData?.userUid === currentUserUid;
+
   const renderContent = () => {
     switch (activeTab) {
       case 'GERAL':
-        return <GeneralTab campaignData={sessionData} campaignUid={campaignUid} />;
+        return (
+          <GeneralTab
+            campaignData={sessionData}
+            campaignUid={campaignUid}
+            isMaster={isMaster}
+            onDataUpdate={setSessionData}
+            onCampaignDeleted={() => navigation.goBack()}
+          />
+        );
       case 'JOGADORES':
-        return <PlayersTab campaignUid={sessionData.uid} />;
+        return (
+          <PlayersTab
+            campaignUid={sessionData.uid}
+            campaignData={sessionData}
+            isMaster={isMaster}
+          />
+        );
       case 'SESSÕES':
         return <SessionsTab campaignUid={sessionData.uid} />;
       case 'NOTAS':
@@ -203,8 +208,8 @@ export default function ProfileSessionPage() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          onPress={() => setIsDrawerVisible(true)} 
+        <TouchableOpacity
+          onPress={() => setIsDrawerVisible(true)}
           style={styles.menuButton}
         >
           <View style={styles.menuIconContainer}>
@@ -213,13 +218,13 @@ export default function ProfileSessionPage() {
             <View style={styles.menuLine} />
           </View>
         </TouchableOpacity>
-        
+
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{getActiveTabTitle()}</Text>
           <Text style={styles.headerSubtitle}>{sessionData?.name}</Text>
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.exitButton}
         >
@@ -234,9 +239,9 @@ export default function ProfileSessionPage() {
 
       {/* Botão de Ficha */}
       <View style={styles.fichaButtonContainer}>
-        <TouchableOpacity 
-          activeOpacity={0.8} 
-          style={styles.fichaButton} 
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={styles.fichaButton}
           onPress={isCharacterSelectVisible ? closeCharacterModal : openCharacterModal}
         >
           <Text style={styles.fichaText}>
@@ -255,24 +260,24 @@ export default function ProfileSessionPage() {
       />
 
       {/* Botão de Chat */}
-      <TouchableOpacity 
-        style={styles.chatButton} 
+      <TouchableOpacity
+        style={styles.chatButton}
         onPress={() => setIsChatVisible(true)}
       >
         <Text style={styles.chatButtonIcon}>💬</Text>
       </TouchableOpacity>
 
       {/* Modal Chat */}
-      <Modal 
-        visible={isChatVisible} 
-        animationType="slide" 
-        transparent 
+      <Modal
+        visible={isChatVisible}
+        animationType="slide"
+        transparent
         onRequestClose={() => setIsChatVisible(false)}
       >
         <View style={styles.chatModalContainer}>
           <View style={styles.chatModalHeader}>
             <Text style={styles.chatModalTitle}>💬 Chat da Sessão</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setIsChatVisible(false)}
               style={styles.chatCloseButton}
             >
@@ -288,7 +293,7 @@ export default function ProfileSessionPage() {
         <Animated.View
           style={[
             styles.characterSheet,
-            { 
+            {
               transform: [{ translateY: sheetPosition }],
               height: '100%',
             }
@@ -298,6 +303,8 @@ export default function ProfileSessionPage() {
           <CharacterSelectModal
             onClose={closeCharacterModal}
             campaignUid={sessionData.uid}
+            campaignData={sessionData}
+            isMaster={isMaster}
           />
         </Animated.View>
       )}
@@ -306,25 +313,25 @@ export default function ProfileSessionPage() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#0a0e27' 
+  container: {
+    flex: 1,
+    backgroundColor: '#0a0e27'
   },
-  loadingContainer: { 
-    flex: 1, 
-    justifyContent: 'center', 
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#0a0e27'
   },
-  loadingText: { 
-    color: '#9ca3af', 
+  loadingText: {
+    color: '#9ca3af',
     marginTop: 16,
     fontSize: 16,
     fontWeight: '500'
   },
-  errorContainer: { 
-    flex: 1, 
-    justifyContent: 'center', 
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#0a0e27',
     padding: 40,
@@ -340,9 +347,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: 'center',
   },
-  errorText: { 
-    color: '#ef4444', 
-    textAlign: 'center', 
+  errorText: {
+    color: '#ef4444',
+    textAlign: 'center',
     fontSize: 16,
     marginBottom: 24,
     lineHeight: 24,
@@ -393,9 +400,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
   },
-  headerTitle: { 
-    color: '#fff', 
-    fontSize: 18, 
+  headerTitle: {
+    color: '#fff',
+    fontSize: 18,
     fontWeight: '800',
     marginBottom: 2,
   },
@@ -414,9 +421,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2d3653',
   },
-  exitText: { 
-    color: '#ef4444', 
-    fontSize: 20, 
+  exitText: {
+    color: '#ef4444',
+    fontSize: 20,
     fontWeight: '700'
   },
   contentWrapper: {
@@ -462,11 +469,11 @@ const styles = StyleSheet.create({
     elevation: 10,
     zIndex: 998,
   },
-  fichaText: { 
-    color: '#fff', 
-    fontWeight: '800', 
-    fontSize: 16, 
-    letterSpacing: 1 
+  fichaText: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 16,
+    letterSpacing: 1
   },
 
   chatButton: {
@@ -487,7 +494,7 @@ const styles = StyleSheet.create({
     borderColor: '#0a0e27',
     zIndex: 100, // Garante que fica acima de outros elementos
   },
-  chatButtonIcon: { 
+  chatButtonIcon: {
     fontSize: 28,
   },
 

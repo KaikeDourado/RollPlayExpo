@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { authApi } from '../lib/auth';
 import { fetchSecure } from '../lib/fetchSecure';
 import { useAuth } from '../context/AuthContext';
@@ -21,66 +21,68 @@ export default function ProfilePage() {
   const [modalVisible, setModalVisible] = useState(false);
   const [imageUrlInput, setImageUrlInput] = useState('');
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const currentUser = authApi.getCurrentUser();
+  const fetchUserData = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const currentUser = authApi.getCurrentUser();
 
-        if (!currentUser) {
-          throw new Error('Usuário não autenticado');
-        }
-
-        // Buscar dados completos do usuário no backend
-        const userRes = await fetchSecure(
-          `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/users/token`,
-          {
-            method: 'GET',
-          }
-        )
-        const response = await userRes.json();
-
-        // Os dados do usuário estão dentro de response.data
-        const userDataFromBackend = response.data || {};
-        console.log('Dados do usuário obtidos do backend:', userDataFromBackend);
-
-        // Mesclar dados do Firebase com dados do backend
-        const userData = {
-          uid: currentUser.uid,
-          displayName: userDataFromBackend.displayName || currentUser.displayName,
-          email: userDataFromBackend.email || currentUser.email,
-          title: userDataFromBackend.title || 'Player de RPG',
-          bio: userDataFromBackend.bio || '',
-          userPhoto: userDataFromBackend.userPhoto || currentUser.userPhoto,
-          createdAt: new Date(currentUser.metadata?.creationTime).toISOString() || new Date().toISOString(),
-        };
-
-        setUser(userData);
-        console.log('User data loaded:', userData);
-        setEditData(userData);
-
-        // Buscar campanhas
-        const campaignsRes = await fetchSecure(`https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/user/${userData.uid}`);
-        const campaignsData = await campaignsRes.json();
-        setCampaigns(Array.isArray(campaignsData) ? campaignsData : campaignsData.campaigns || []);
-
-        // Buscar personagens
-        const charactersRes = await fetchSecure(`https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/sheets/user/${userData.uid}`);
-        const charactersData = await charactersRes.json();
-        setCharacters(Array.isArray(charactersData) ? charactersData : charactersData.sheets || []);
-
-      } catch (err) {
-        console.error('Erro ao buscar dados do usuário:', err.message);
-        setError('Não foi possível carregar os dados do usuário.');
-
-      } finally {
-        setLoading(false);
+      if (!currentUser) {
+        throw new Error('Usuário não autenticado');
       }
-    };
 
-    fetchUserData();
+      // Buscar dados completos do usuário no backend
+      const userRes = await fetchSecure(
+        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/users/token`,
+        {
+          method: 'GET',
+        }
+      )
+      const response = await userRes.json();
+
+      // Os dados do usuário estão dentro de response.data
+      const userDataFromBackend = response.data || {};
+      console.log('Dados do usuário obtidos do backend:', userDataFromBackend);
+
+      // Mesclar dados do Firebase com dados do backend
+      const userData = {
+        uid: currentUser.uid,
+        displayName: userDataFromBackend.displayName || currentUser.displayName,
+        email: userDataFromBackend.email || currentUser.email,
+        title: userDataFromBackend.title || 'Player de RPG',
+        bio: userDataFromBackend.bio || '',
+        userPhoto: userDataFromBackend.userPhoto || currentUser.userPhoto,
+        createdAt: new Date(currentUser.metadata?.creationTime).toISOString() || new Date().toISOString(),
+      };
+
+      setUser(userData);
+      console.log('User data loaded:', userData);
+      setEditData(userData);
+
+      // Buscar campanhas
+      const campaignsRes = await fetchSecure(`https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/user/${userData.uid}`);
+      const campaignsData = await campaignsRes.json();
+      setCampaigns(Array.isArray(campaignsData) ? campaignsData : campaignsData.campaigns || []);
+
+      // Buscar personagens
+      const charactersRes = await fetchSecure(`https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/sheets/user/${userData.uid}`);
+      const charactersData = await charactersRes.json();
+      setCharacters(Array.isArray(charactersData) ? charactersData : charactersData.sheets || []);
+
+    } catch (err) {
+      console.error('Erro ao buscar dados do usuário:', err.message);
+      setError('Não foi possível carregar os dados do usuário.');
+
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserData();
+    }, [fetchUserData])
+  );
 
   const handleImageSave = () => {
     if (imageUrlInput && imageUrlInput.startsWith('http')) {
@@ -161,6 +163,44 @@ export default function ProfilePage() {
       Alert.alert('Erro', 'Falha ao sair. Tente novamente.');
       console.error('Logout error:', err);
     }
+  };
+
+  const handleDeleteProfile = () => {
+    Alert.alert(
+      'Excluir perfil',
+      'Tem certeza que deseja excluir seu perfil? Essa ação não poderá ser desfeita.',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await fetchSecure(
+                `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/users/${user.uid}`,
+                {
+                  method: 'DELETE',
+                }
+              );
+
+              if (!response.ok) {
+                throw new Error('Erro ao excluir perfil');
+              }
+
+              Alert.alert('Perfil excluído', 'Seu perfil foi excluído com sucesso.');
+
+              await logout();
+            } catch (err) {
+              console.error('Erro ao excluir perfil:', err);
+              Alert.alert('Erro', 'Não foi possível excluir o perfil. Tente novamente.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -289,6 +329,13 @@ export default function ProfilePage() {
               onPress={handleEditClick}
             >
               <Text style={styles.buttonText}>EDITAR PERFIL</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.button, styles.deleteButton]}
+              onPress={handleDeleteProfile}
+            >
+              <Text style={styles.deleteButtonText}>EXCLUIR PERFIL</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -566,6 +613,18 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     borderWidth: 1.5,
     borderColor: "#2d3653",
+  },
+  deleteButton: {
+    backgroundColor: "transparent",
+    borderWidth: 1.5,
+    borderColor: "#ef4444",
+  },
+
+  deleteButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#ef4444",
+    letterSpacing: 0.5,
   },
   logoutButton: {
     backgroundColor: "transparent",

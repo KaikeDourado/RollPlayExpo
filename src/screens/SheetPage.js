@@ -18,8 +18,8 @@ import AnotacoesSection from '../components/sheet/AnotacoesSection';
 const SheetPage = () => {
   const route = useRoute();
   const navigation = useNavigation();
-  const { id, campaignUid } = route.params;
-  
+  const { id, campaignUid, isMaster } = route.params;
+
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -36,7 +36,7 @@ const SheetPage = () => {
     setError('');
     try {
       console.log('🔍 Buscando ficha com ID:', id);
-      
+
       const response = await fetchSecure(
         `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/sheets/${id}`,
         { method: 'GET' }
@@ -50,13 +50,13 @@ const SheetPage = () => {
 
       const rawText = await response.text();
       console.log('📥 Resposta RAW (texto):', rawText);
-      
+
       const data = JSON.parse(rawText);
       console.log('✅ Ficha carregada COMPLETA:', JSON.stringify(data, null, 2));
       console.log('🔑 Chaves do objeto data:', Object.keys(data));
 
       let sheetData;
-      
+
       if (data.data) {
         console.log('📦 API retornou em data.data');
         sheetData = data.data;
@@ -70,10 +70,10 @@ const SheetPage = () => {
         console.log('📦 API retornou direto (sem wrapper)');
         sheetData = data;
       }
-      
+
       console.log('🎯 Sheet Data FINAL extraído:', sheetData);
       console.log('🔑 Chaves do sheetData:', Object.keys(sheetData || {}));
-      
+
       const normalizedData = {
         ...sheetData,
         hp: sheetData.hp || {
@@ -92,7 +92,7 @@ const SheetPage = () => {
         speed: sheetData.speed || { walk: 0, swim: 0, fly: 0, climb: 0, burrow: 0 },
         ac: sheetData.ac || { value: 10, breakdown: {}, shieldEquipped: false }
       };
-      
+
       console.log('✨ Dados normalizados:', normalizedData);
       setCharacterData(normalizedData);
     } catch (err) {
@@ -106,7 +106,7 @@ const SheetPage = () => {
 
   const handleUpdateCharacter = (section, data) => {
     console.log(`🔄 Atualizando seção: ${section}`, data);
-    
+
     if (!editMode) {
       console.log('⚠️ Tentativa de atualização fora do modo de edição');
       return;
@@ -114,12 +114,12 @@ const SheetPage = () => {
 
     setCharacterData(prev => {
       let updated;
-      
-      switch(section) {
+
+      switch (section) {
         case 'general':
           updated = { ...prev, ...data };
           break;
-        
+
         case 'personality':
           updated = {
             ...prev,
@@ -130,22 +130,22 @@ const SheetPage = () => {
             flaws: data.flaws !== undefined ? data.flaws : prev.flaws,
           };
           break;
-        
+
         case 'notes':
           updated = { ...prev, notes: data };
           break;
-        
+
         case 'hp':
           updated = { ...prev, hp: data };
           break;
-        
+
         default:
           updated = {
             ...prev,
             [section]: data
           };
       }
-      
+
       console.log('✅ Dados atualizados localmente:', updated);
       return updated;
     });
@@ -170,10 +170,10 @@ const SheetPage = () => {
       );
 
       console.log('📊 Status da resposta de salvamento:', response.status);
-      
+
       const responseText = await response.text();
       console.log('📥 Resposta do servidor:', responseText);
-      
+
       if (!response.ok) {
         console.error('❌ Erro na resposta:', responseText);
         throw new Error(`Erro ao salvar ficha: ${response.status} - ${responseText}`);
@@ -192,11 +192,11 @@ const SheetPage = () => {
       console.log('✅ Ficha salva com sucesso!');
       Alert.alert('Sucesso', 'Ficha salva com sucesso!');
       setEditMode(false);
-      
+
     } catch (err) {
       console.error('❌ Erro ao salvar ficha:', err);
       Alert.alert(
-        'Erro', 
+        'Erro',
         `Não foi possível salvar as alterações.\n\nDetalhes: ${err.message}`
       );
     } finally {
@@ -214,9 +214,43 @@ const SheetPage = () => {
     }
   };
 
+  const handleDeleteSheet = () => {
+    if (!isMaster) return;
+
+    Alert.alert(
+      'Excluir ficha',
+      'Tem certeza que deseja excluir esta ficha? Essa ação não poderá ser desfeita.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await fetchSecure(
+                `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/sheets/${id}`,
+                { method: 'DELETE' }
+              );
+
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Erro ao excluir ficha.');
+              }
+
+              Alert.alert('Sucesso', 'Ficha excluída com sucesso.');
+              handleBack();
+            } catch (err) {
+              Alert.alert('Erro', err.message || 'Não foi possível excluir a ficha.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleBack = () => {
     console.log('⬅️ Voltando para ProfileSession com campaignUid:', campaignUid);
-    
+
     if (campaignUid) {
       navigation.navigate('ProfileSession', {
         campaignUid: campaignUid,
@@ -256,7 +290,7 @@ const SheetPage = () => {
             onSave={(data) => handleUpdateCharacter('general', data)}
           />
         );
-      
+
       case 'atributos':
         return (
           <AtributosSection
@@ -266,7 +300,7 @@ const SheetPage = () => {
             onSave={(data) => handleUpdateCharacter('attributes', data)}
           />
         );
-      
+
       case 'pericias':
         return (
           <PericiasProficienciasSection
@@ -279,7 +313,7 @@ const SheetPage = () => {
             onSave={(data) => handleUpdateCharacter('skills', data)}
           />
         );
-      
+
       case 'ataques':
         return (
           <AtaquesMagiasSection
@@ -289,7 +323,7 @@ const SheetPage = () => {
             onSave={(data) => handleUpdateCharacter('combat', data)}
           />
         );
-      
+
       case 'inventario':
         return (
           <InventarioSection
@@ -298,7 +332,7 @@ const SheetPage = () => {
             onSave={(data) => handleUpdateCharacter('inventory', data)}
           />
         );
-      
+
       case 'habilidades':
         return (
           <HabilidadesSection
@@ -307,7 +341,7 @@ const SheetPage = () => {
             onSave={(data) => handleUpdateCharacter('features', data)}
           />
         );
-      
+
       case 'personalidade':
         const personalidadeData = { appearance, backstoryPersonality, ideals, bonds, flaws };
         return (
@@ -317,7 +351,7 @@ const SheetPage = () => {
             onSave={(data) => handleUpdateCharacter('personality', data)}
           />
         );
-      
+
       case 'anotacoes':
         return (
           <AnotacoesSection
@@ -326,7 +360,7 @@ const SheetPage = () => {
             onSave={(data) => handleUpdateCharacter('notes', data)}
           />
         );
-      
+
       default:
         return null;
     }
@@ -393,7 +427,16 @@ const SheetPage = () => {
         }}
         onBack={handleBack}
       />
-      
+
+      {isMaster && (
+        <TouchableOpacity
+          style={styles.deleteSheetButton}
+          onPress={handleDeleteSheet}
+        >
+          <Text style={styles.deleteSheetButtonText}>Excluir ficha</Text>
+        </TouchableOpacity>
+      )}
+
       <View style={styles.menuContainer}>
         <KeyboardAwareScrollView
           horizontal
@@ -571,6 +614,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#ffffff',
     fontWeight: '600',
+  },
+  deleteSheetButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: '#ef4444',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+
+  deleteSheetButtonText: {
+    color: '#ef4444',
+    fontSize: 15,
+    fontWeight: '800',
   },
 });
 

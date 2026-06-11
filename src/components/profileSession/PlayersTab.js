@@ -1,30 +1,43 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, Modal, Share, Clipboard } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { fetchSecure } from '../../lib/fetchSecure';
 
-const PlayerCard = ({ player, onPress }) => (
-  <TouchableOpacity style={playerCardStyles.card} onPress={onPress}>
+const PlayerCard = ({ player, onPress, isMaster, onCreateSheet }) => (
+  <TouchableOpacity
+    style={[
+      playerCardStyles.card,
+      player.isMaster && playerCardStyles.masterCard
+    ]}
+    onPress={onPress}
+  >
     <View style={playerCardStyles.avatarContainer}>
-      <Image 
-        source={player.avatar ? { uri: player.avatar } : require("../../../assets/default-profile-img.png")} 
-        style={playerCardStyles.avatar} 
+      <Image
+        source={player.avatar ? { uri: player.avatar } : require("../../../assets/default-profile-img.png")}
+        style={playerCardStyles.avatar}
       />
     </View>
+
     <View style={playerCardStyles.info}>
-      <Text style={playerCardStyles.name}>{player.name || player.displayName || 'Jogador'}</Text>
-      {player.character && (
-        <>
-          <Text style={playerCardStyles.character}>{player.character.name}</Text>
-          <Text style={playerCardStyles.details}>
-            {player.character.race} • {player.character.class}
-          </Text>
-          <View style={playerCardStyles.levelBadge}>
-            <Text style={playerCardStyles.levelText}>Nível {player.character.level}</Text>
-          </View>
-        </>
+      <Text style={playerCardStyles.name}>
+        {player.userName || 'Jogador'} {player.isMaster ? '👑' : ''}
+      </Text>
+
+      {player.isMaster && (
+        <Text style={playerCardStyles.masterLabel}>Mestre da mesa</Text>
       )}
-      {!player.character && (
-        <Text style={playerCardStyles.noCharacter}>Nenhum personagem atribuído</Text>
+
+      {!player.isMaster && (
+        <Text style={playerCardStyles.noCharacter}>Jogador da campanha</Text>
+      )}
+
+      {isMaster && (
+        <TouchableOpacity
+          style={playerCardStyles.createSheetButton}
+          onPress={onCreateSheet}
+        >
+          <Text style={playerCardStyles.createSheetButtonText}>+ Criar ficha</Text>
+        </TouchableOpacity>
       )}
     </View>
   </TouchableOpacity>
@@ -55,7 +68,7 @@ const InviteModal = ({ visible, onClose, campaignCode }) => {
           <Text style={modalStyles.modalSubtitle}>
             Compartilhe este código com seus amigos
           </Text>
-          
+
           <View style={modalStyles.codeContainer}>
             <Text style={modalStyles.codeLabel}>Código da Campanha</Text>
             <TouchableOpacity onPress={handleCopyCode}>
@@ -84,11 +97,13 @@ const InviteModal = ({ visible, onClose, campaignCode }) => {
   );
 };
 
-const PlayersTab = ({ campaignUid }) => {
+const PlayersTab = ({ campaignUid, campaignData, isMaster }) => {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
+  const navigation = useNavigation();
+  const [master, setMaster] = useState(null);
 
   useEffect(() => {
     fetchPlayers();
@@ -103,10 +118,10 @@ const PlayersTab = ({ campaignUid }) => {
 
     setLoading(true);
     setError('');
-    
+
     try {
       console.log('🔍 Buscando campanha:', campaignUid);
-      
+
       const response = await fetchSecure(
         `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
         { method: 'GET' }
@@ -120,10 +135,10 @@ const PlayersTab = ({ campaignUid }) => {
 
       const responseText = await response.text();
       console.log('📥 Resposta raw:', responseText);
-      
+
       const data = JSON.parse(responseText);
       console.log('✅ Dados da campanha:', data);
-      
+
       // Extrair os dados da campanha
       let campaignData;
       if (data.data) {
@@ -133,17 +148,36 @@ const PlayersTab = ({ campaignUid }) => {
       } else {
         campaignData = data;
       }
-      
+
+      setMaster({
+        uid: campaignData.userUid,
+        userName: campaignData.ownerName || campaignData.masterName || 'Mestre',
+        isMaster: true,
+      });
+
       console.log('📦 Campanha extraída:', campaignData);
       console.log('👥 Players array:', campaignData.players);
-      
+
       // Se players é um array vazio ou não existe, definir como array vazio
-      const playersArray = Array.isArray(campaignData.players) ? campaignData.players : [];
-      
+      const masterUid = campaignData.userUid;
+
+      const playersArray = Array.isArray(campaignData.players)
+        ? campaignData.players
+        : [];
+
+      const normalizedPlayers = playersArray
+        .map((player) => ({
+          ...player,
+          uid: player.uid || player.userUid,
+          userName: player.userName || player.name || player.displayName || 'Jogador',
+          isMaster: false,
+        }))
+        .filter((player) => player.uid !== masterUid);
+
+      setPlayers(normalizedPlayers);
+
       console.log(`✅ Total de jogadores: ${playersArray.length}`);
-      
-      setPlayers(playersArray);
-      
+
     } catch (err) {
       console.error('❌ Erro ao buscar jogadores:', err);
       setError('Não foi possível carregar os jogadores');
@@ -152,13 +186,73 @@ const PlayersTab = ({ campaignUid }) => {
     }
   };
 
+  const handleCreateSheet = (player) => {
+    if (!isMaster) return;
+
+    Alert.alert(
+      'Criar ficha',
+      `Criar uma nova ficha para ${player.userName}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Criar',
+          onPress: async () => {
+            try {
+              const sheetData = {
+                userUid: player.uid,
+                campaignUid,
+                name: `Novo personagem de ${player.userName}`,
+                characterClass: '',
+                subclass: '',
+                level: 1,
+                race: '',
+                background: '',
+                alignment: '',
+                xp: 0,
+              };
+
+              const response = await fetchSecure(
+                'https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/sheets',
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(sheetData),
+                }
+              );
+
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Não foi possível criar a ficha.');
+              }
+
+              const data = await response.json();
+              const createdSheet = data.sheet || data.data || data;
+
+              Alert.alert('Sucesso', 'Ficha criada com sucesso.');
+
+              navigation.navigate('Sheet', {
+                id: createdSheet.uid,
+                campaignUid,
+                isMaster,
+              });
+            } catch (err) {
+              Alert.alert('Erro', err.message || 'Não foi possível criar a ficha.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handlePlayerPress = (player) => {
-    const message = player.character 
+    const message = player.character
       ? `Personagem: ${player.character.name}\nRaça: ${player.character.race}\nClasse: ${player.character.class}\nNível: ${player.character.level}`
       : 'Nenhum personagem atribuído';
-    
+
     Alert.alert(
-      player.name || player.displayName || 'Jogador',
+      player.userName || player.name || player.displayName || 'Jogador',
       message,
       [{ text: 'OK' }]
     );
@@ -182,8 +276,8 @@ const PlayersTab = ({ campaignUid }) => {
             {players.length} {players.length === 1 ? 'jogador' : 'jogadores'}
           </Text>
         </View>
-        <TouchableOpacity 
-          style={styles.inviteButton} 
+        <TouchableOpacity
+          style={styles.inviteButton}
           onPress={() => setInviteModalVisible(true)}
         >
           <Text style={styles.inviteButtonText}>+ Convidar</Text>
@@ -193,26 +287,39 @@ const PlayersTab = ({ campaignUid }) => {
       {error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>⚠️ {error}</Text>
-          <TouchableOpacity 
-            style={styles.retryButton} 
+          <TouchableOpacity
+            style={styles.retryButton}
             onPress={fetchPlayers}
           >
             <Text style={styles.retryButtonText}>Tentar Novamente</Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.playersGrid}
           showsVerticalScrollIndicator={false}
         >
-          {players.length > 0 ? (
-            players.map((player, index) => (
-              <PlayerCard 
-                key={player.uid || player.id || player._id || `player-${index}`} 
-                player={player}
-                onPress={() => handlePlayerPress(player)}
-              />
-            ))
+          {master || players.length > 0 ? (
+            <>
+              {master && (
+                <PlayerCard
+                  player={master}
+                  isMaster={isMaster}
+                  onPress={() => handlePlayerPress(master)}
+                  onCreateSheet={() => handleCreateSheet(master)}
+                />
+              )}
+
+              {players.map((player, index) => (
+                <PlayerCard
+                  key={player.uid || `player-${index}`}
+                  player={player}
+                  isMaster={isMaster}
+                  onPress={() => handlePlayerPress(player)}
+                  onCreateSheet={() => handleCreateSheet(player)}
+                />
+              ))}
+            </>
           ) : (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateIcon}>👥</Text>
@@ -220,7 +327,7 @@ const PlayersTab = ({ campaignUid }) => {
               <Text style={styles.emptyStateText}>
                 Convide seus amigos para começar a aventura!
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.emptyStateButton}
                 onPress={() => setInviteModalVisible(true)}
               >
@@ -231,7 +338,7 @@ const PlayersTab = ({ campaignUid }) => {
         </ScrollView>
       )}
 
-      <InviteModal 
+      <InviteModal
         visible={inviteModalVisible}
         onClose={() => setInviteModalVisible(false)}
         campaignCode={campaignUid}
@@ -370,6 +477,32 @@ const playerCardStyles = StyleSheet.create({
     borderColor: '#2d3653',
     borderLeftWidth: 4,
     borderLeftColor: '#3b9dff',
+  },
+  masterCard: {
+    borderLeftColor: '#facc15',
+    borderColor: '#facc15',
+  },
+
+  masterLabel: {
+    fontSize: 13,
+    color: '#facc15',
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+
+  createSheetButton: {
+    backgroundColor: '#3b9dff',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+
+  createSheetButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
   },
   avatarContainer: {
     marginRight: 14,

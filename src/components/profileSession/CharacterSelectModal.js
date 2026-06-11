@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { fetchSecure } from '../../lib/fetchSecure';
 import { authApi } from '../../lib/auth';
 
-const CharacterSelectModal = ({ onClose, campaignUid }) => {
+const CharacterSelectModal = ({ onClose, campaignUid, campaignData, isMaster }) => {
   const [characters, setCharacters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -24,8 +24,12 @@ const CharacterSelectModal = ({ onClose, campaignUid }) => {
       }
 
       // Buscar fichas do usuário que pertencem a esta campanha
+      const endpoint = isMaster
+        ? `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/sheets/campaign/${campaignUid}`
+        : `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/sheets/token/${campaignUid}`;
+
       const response = await fetchSecure(
-        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/sheets/token/${campaignUid}`,
+        endpoint,
         { method: 'GET' }
       );
 
@@ -47,7 +51,11 @@ const CharacterSelectModal = ({ onClose, campaignUid }) => {
     onClose();
     // Pequeno delay para garantir que o modal fecha antes da navegação
     setTimeout(() => {
-      navigation.navigate('Sheet', { id: character.uid || character._id });
+      navigation.navigate('Sheet', {
+        id: character.uid || character._id,
+        campaignUid,
+        isMaster,
+      });
     }, 100);
   };
 
@@ -82,7 +90,9 @@ const CharacterSelectModal = ({ onClose, campaignUid }) => {
             <Text style={styles.headerIconText}>📋</Text>
           </View>
           <View style={styles.headerTextContainer}>
-            <Text style={styles.title}>Seus Personagens</Text>
+            <Text style={styles.title}>
+              {isMaster ? 'Fichas da Mesa' : 'Seus Personagens'}
+            </Text>
             <Text style={styles.subtitle}>Selecione uma ficha para visualizar</Text>
           </View>
         </View>
@@ -103,16 +113,16 @@ const CharacterSelectModal = ({ onClose, campaignUid }) => {
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.characterCard}
               onPress={() => handleSelectCharacter(item)}
               activeOpacity={0.7}
             >
               <View style={styles.characterImageContainer}>
-                <Image 
+                <Image
                   source={
-                    item.avatar 
-                      ? { uri: item.avatar } 
+                    item.avatar
+                      ? { uri: item.avatar }
                       : require('../../../assets/default-profile-img.png')
                   }
                   style={styles.characterImage}
@@ -121,7 +131,7 @@ const CharacterSelectModal = ({ onClose, campaignUid }) => {
                   <Text style={styles.levelText}>{item.level || 1}</Text>
                 </View>
               </View>
-              
+
               <View style={styles.characterInfo}>
                 <Text style={styles.characterName}>{item.name}</Text>
                 <View style={styles.characterDetails}>
@@ -150,27 +160,13 @@ const CharacterSelectModal = ({ onClose, campaignUid }) => {
           <Text style={styles.emptyStateIcon}>📜</Text>
           <Text style={styles.emptyStateTitle}>Nenhum personagem</Text>
           <Text style={styles.emptyStateText}>
-            Você ainda não criou nenhum personagem para esta campanha.
+            Sem fichas para esta campanha.
           </Text>
-          <TouchableOpacity 
-            style={styles.createButton}
-            onPress={handleCreateCharacter}
-          >
-            <Text style={styles.createButtonText}>+ Criar Personagem</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Footer com botão de criar */}
-      {characters.length > 0 && (
-        <View style={styles.footer}>
-          <TouchableOpacity 
-            style={styles.createButtonFooter}
-            onPress={handleCreateCharacter}
-          >
-            <Text style={styles.createButtonFooterIcon}>+</Text>
-            <Text style={styles.createButtonFooterText}>Criar Novo Personagem</Text>
-          </TouchableOpacity>
+          {isMaster && (
+            <Text style={styles.emptyStateText}>
+              Vá até a aba Jogadores e toque em "+ Criar ficha" no jogador desejado.
+            </Text>
+          )}
         </View>
       )}
     </View>

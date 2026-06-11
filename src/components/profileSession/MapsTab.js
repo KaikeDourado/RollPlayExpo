@@ -28,7 +28,7 @@ const AddMapModal = ({ visible, onClose, onMapAdded, campaignUid }) => {
 
       const campaignText = await getCampaignResponse.text();
       const campaignData = JSON.parse(campaignText);
-      
+
       // Extrair os dados da campanha
       let campaign;
       if (campaignData.data) {
@@ -95,7 +95,7 @@ const AddMapModal = ({ visible, onClose, onMapAdded, campaignUid }) => {
       <View style={modalStyles.overlay}>
         <View style={modalStyles.modalContainer}>
           <Text style={modalStyles.modalTitle}>🗺️ Novo Mapa</Text>
-          
+
           <Text style={modalStyles.label}>Título</Text>
           <TextInput
             style={modalStyles.input}
@@ -134,8 +134,8 @@ const AddMapModal = ({ visible, onClose, onMapAdded, campaignUid }) => {
           />
 
           <View style={modalStyles.buttonContainer}>
-            <TouchableOpacity 
-              onPress={handleCreate} 
+            <TouchableOpacity
+              onPress={handleCreate}
               style={[modalStyles.createButton, loading && { opacity: 0.6 }]}
               disabled={loading}
             >
@@ -145,8 +145,162 @@ const AddMapModal = ({ visible, onClose, onMapAdded, campaignUid }) => {
                 <Text style={modalStyles.createButtonText}>Criar</Text>
               )}
             </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={onClose} 
+            <TouchableOpacity
+              onPress={onClose}
+              style={modalStyles.cancelButton}
+              disabled={loading}
+            >
+              <Text style={modalStyles.cancelButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const EditMapModal = ({ visible, onClose, onMapUpdated, campaignUid, selectedMap }) => {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (selectedMap) {
+      setTitle(selectedMap.title || '');
+      setDescription(selectedMap.description || '');
+      setImageUrl(selectedMap.imageUrl || '');
+    }
+  }, [selectedMap]);
+
+  const handleUpdate = async () => {
+    if (!title.trim()) {
+      Alert.alert('Erro', 'O título é obrigatório.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const getCampaignResponse = await fetchSecure(
+        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+        { method: 'GET' }
+      );
+
+      if (!getCampaignResponse.ok) {
+        throw new Error('Não foi possível buscar a campanha');
+      }
+
+      const campaignData = JSON.parse(await getCampaignResponse.text());
+      const campaign = campaignData.data || campaignData.campaign || campaignData;
+
+      const selectedId = selectedMap.id || selectedMap._id;
+
+      const updatedMapas = (campaign.mapas || []).map((map) => {
+        const mapId = map.id || map._id;
+
+        if (mapId !== selectedId) return map;
+
+        return {
+          ...map,
+          title: title.trim(),
+          description: description.trim(),
+          imageUrl: imageUrl.trim(),
+          updatedAt: new Date().toISOString(),
+        };
+      });
+
+      const response = await fetchSecure(
+        `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...campaign,
+            mapas: updatedMapas,
+            updatedAt: new Date().toISOString(),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Não foi possível atualizar o mapa.');
+      }
+
+      Alert.alert('Sucesso', 'Mapa atualizado com sucesso!');
+      onClose();
+
+      if (onMapUpdated) {
+        onMapUpdated();
+      }
+    } catch (err) {
+      Alert.alert('Erro', err.message || 'Não foi possível atualizar o mapa.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={modalStyles.overlay}>
+        <View style={modalStyles.modalContainer}>
+          <Text style={modalStyles.modalTitle}>✏️ Editar Mapa</Text>
+
+          <Text style={modalStyles.label}>Título</Text>
+          <TextInput
+            style={modalStyles.input}
+            placeholder="Ex: Mapa da Cidade"
+            placeholderTextColor="#6b7280"
+            value={title}
+            onChangeText={setTitle}
+            maxLength={100}
+            editable={!loading}
+          />
+
+          <Text style={modalStyles.label}>Descrição</Text>
+          <TextInput
+            style={[modalStyles.input, modalStyles.textArea]}
+            placeholder="Descreva o mapa..."
+            placeholderTextColor="#6b7280"
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            numberOfLines={3}
+            textAlignVertical="top"
+            maxLength={300}
+            editable={!loading}
+          />
+
+          <Text style={modalStyles.label}>URL da Imagem</Text>
+          <TextInput
+            style={modalStyles.input}
+            placeholder="https://exemplo.com/mapa.jpg"
+            placeholderTextColor="#6b7280"
+            value={imageUrl}
+            onChangeText={setImageUrl}
+            maxLength={500}
+            editable={!loading}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+
+          <View style={modalStyles.buttonContainer}>
+            <TouchableOpacity
+              onPress={handleUpdate}
+              style={[modalStyles.createButton, loading && { opacity: 0.6 }]}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Text style={modalStyles.createButtonText}>Salvar</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={onClose}
               style={modalStyles.cancelButton}
               disabled={loading}
             >
@@ -164,6 +318,8 @@ const MapsTab = ({ campaignUid }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [selectedMap, setSelectedMap] = useState(null);
 
   useEffect(() => {
     fetchMaps();
@@ -178,10 +334,10 @@ const MapsTab = ({ campaignUid }) => {
 
     setLoading(true);
     setError('');
-    
+
     try {
       console.log('🔍 Buscando mapas da campanha:', campaignUid);
-      
+
       const response = await fetchSecure(
         `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
         { method: 'GET' }
@@ -195,10 +351,10 @@ const MapsTab = ({ campaignUid }) => {
 
       const responseText = await response.text();
       console.log('📥 Resposta raw:', responseText);
-      
+
       const data = JSON.parse(responseText);
       console.log('✅ Dados da campanha:', data);
-      
+
       // Extrair os dados da campanha
       let campaignData;
       if (data.data) {
@@ -208,17 +364,17 @@ const MapsTab = ({ campaignUid }) => {
       } else {
         campaignData = data;
       }
-      
+
       console.log('📦 Campanha extraída:', campaignData);
       console.log('🗺️ Mapas array:', campaignData.mapas);
-      
+
       // Se mapas é um array vazio ou não existe, definir como array vazio
       const mapsArray = Array.isArray(campaignData.mapas) ? campaignData.mapas : [];
-      
+
       console.log(`✅ Total de mapas: ${mapsArray.length}`);
-      
+
       setMaps(mapsArray);
-      
+
     } catch (err) {
       console.error('❌ Erro ao buscar mapas:', err);
       setError('Não foi possível carregar os mapas');
@@ -229,6 +385,11 @@ const MapsTab = ({ campaignUid }) => {
 
   const handleMapAdded = () => {
     fetchMaps();
+  };
+
+  const handleEditMap = (map) => {
+    setSelectedMap(map);
+    setEditModalVisible(true);
   };
 
   const handleViewMap = (map) => {
@@ -245,8 +406,8 @@ const MapsTab = ({ campaignUid }) => {
       'Tem certeza de que deseja excluir este mapa?',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Excluir', 
+        {
+          text: 'Excluir',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -262,7 +423,7 @@ const MapsTab = ({ campaignUid }) => {
 
               const campaignText = await getCampaignResponse.text();
               const campaignData = JSON.parse(campaignText);
-              
+
               let campaign;
               if (campaignData.data) {
                 campaign = campaignData.data;
@@ -315,6 +476,7 @@ const MapsTab = ({ campaignUid }) => {
         <ActivityIndicator size="large" color="#3b9dff" />
         <Text style={styles.loadingText}>Carregando mapas...</Text>
       </View>
+
     );
   }
 
@@ -327,8 +489,8 @@ const MapsTab = ({ campaignUid }) => {
             {maps.length} {maps.length === 1 ? 'mapa' : 'mapas'}
           </Text>
         </View>
-        <TouchableOpacity 
-          style={styles.addButton} 
+        <TouchableOpacity
+          style={styles.addButton}
           onPress={() => setModalVisible(true)}
         >
           <Text style={styles.addButtonText}>+ Novo</Text>
@@ -338,15 +500,15 @@ const MapsTab = ({ campaignUid }) => {
       {error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>⚠️ {error}</Text>
-          <TouchableOpacity 
-            style={styles.retryButton} 
+          <TouchableOpacity
+            style={styles.retryButton}
             onPress={fetchMaps}
           >
             <Text style={styles.retryButtonText}>Tentar Novamente</Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.mapsGrid}
           showsVerticalScrollIndicator={false}
         >
@@ -358,16 +520,25 @@ const MapsTab = ({ campaignUid }) => {
                 onPress={() => handleViewMap(map)}
               >
                 <View style={styles.mapImageContainer}>
-                  <Image 
+                  <Image
                     source={
-                      map.imageUrl 
-                        ? { uri: map.imageUrl } 
+                      map.imageUrl
+                        ? { uri: map.imageUrl }
                         : require("../../../assets/default-map-img.png")
-                    } 
-                    style={styles.mapImage} 
+                    }
+                    style={styles.mapImage}
                   />
+                  <TouchableOpacity
+                    style={styles.deleteMapButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleEditMap(map);
+                    }}
+                  >
+                    <Text style={styles.deleteMapButtonText}>✏️</Text>
+                  </TouchableOpacity>
                   <View style={styles.mapOverlay}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.deleteMapButton}
                       onPress={(e) => {
                         e.stopPropagation();
@@ -395,7 +566,7 @@ const MapsTab = ({ campaignUid }) => {
               <Text style={styles.emptyStateText}>
                 Adicione mapas para ajudar seus jogadores a visualizar o mundo da campanha!
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.emptyStateButton}
                 onPress={() => setModalVisible(true)}
               >
@@ -406,11 +577,22 @@ const MapsTab = ({ campaignUid }) => {
         </ScrollView>
       )}
 
-      <AddMapModal 
+      <AddMapModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onMapAdded={handleMapAdded}
         campaignUid={campaignUid}
+      />
+
+      <EditMapModal
+        visible={editModalVisible}
+        onClose={() => {
+          setEditModalVisible(false);
+          setSelectedMap(null);
+        }}
+        onMapUpdated={fetchMaps}
+        campaignUid={campaignUid}
+        selectedMap={selectedMap}
       />
     </View>
   );

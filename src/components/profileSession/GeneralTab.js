@@ -6,6 +6,7 @@ const EditCampaignModal = ({ visible, onClose, campaignData, onSave }) => {
   const [name, setName] = useState(campaignData?.name || '');
   const [description, setDescription] = useState(campaignData?.description || '');
   const [system, setSystem] = useState(campaignData?.system || 'D&D 5e');
+  const [imageUrl, setImageUrl] = useState(campaignData?.imageUrl || '');
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
@@ -20,6 +21,7 @@ const EditCampaignModal = ({ visible, onClose, campaignData, onSave }) => {
         name: name.trim(),
         description: description.trim(),
         system: system.trim(),
+        imageUrl: imageUrl.trim(),
       };
 
       const response = await fetchSecure(
@@ -73,14 +75,40 @@ const EditCampaignModal = ({ visible, onClose, campaignData, onSave }) => {
           />
 
           <Text style={modalStyles.label}>Sistema</Text>
+          <View style={modalStyles.selectContainer}>
+            {['D&D 5e', 'D&D 5.5e'].map((option) => (
+              <TouchableOpacity
+                key={option}
+                style={[
+                  modalStyles.selectOption,
+                  system === option && modalStyles.selectOptionActive
+                ]}
+                onPress={() => setSystem(option)}
+                disabled={loading}
+              >
+                <Text
+                  style={[
+                    modalStyles.selectOptionText,
+                    system === option && modalStyles.selectOptionTextActive
+                  ]}
+                >
+                  {option}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={modalStyles.label}>URL da Imagem</Text>
           <TextInput
             style={modalStyles.input}
-            placeholder="Ex: D&D 5e"
+            placeholder="https://exemplo.com/campanha.jpg"
             placeholderTextColor="#6b7280"
-            value={system}
-            onChangeText={setSystem}
-            maxLength={50}
+            value={imageUrl}
+            onChangeText={setImageUrl}
+            maxLength={500}
             editable={!loading}
+            autoCapitalize="none"
+            autoCorrect={false}
           />
 
           <Text style={modalStyles.label}>Descrição</Text>
@@ -123,13 +151,13 @@ const EditCampaignModal = ({ visible, onClose, campaignData, onSave }) => {
   );
 };
 
-const GeneralTab = ({ campaignData, campaignUid, onDataUpdate }) => {
+const GeneralTab = ({ campaignData, campaignUid, onDataUpdate, isMaster, onCampaignDeleted }) => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [localCampaignData, setLocalCampaignData] = useState(campaignData);
 
   useEffect(() => {
-  setLocalCampaignData(campaignData);
-}, [campaignData]);
+    setLocalCampaignData(campaignData);
+  }, [campaignData]);
 
   const createdAtDate = localCampaignData?.createdAt ? new Date(localCampaignData.createdAt) : null;
   const formattedCreatedAt = createdAtDate && !isNaN(createdAtDate.getTime())
@@ -145,10 +173,19 @@ const GeneralTab = ({ campaignData, campaignUid, onDataUpdate }) => {
     system: localCampaignData?.system || 'D&D 5e',
     createdAt: formattedCreatedAt,
     description: localCampaignData?.description || 'Sem descrição',
-    playersCount: localCampaignData?.players?.length || 0,
-    profileImage: localCampaignData?.profileImage
-      ? { uri: localCampaignData.profileImage }
+    playersCount: Array.isArray(localCampaignData?.players)
+      ? localCampaignData.players.filter((player) => {
+        const playerUid = typeof player === 'string'
+          ? player
+          : player.uid || player.userUid;
+
+        return playerUid !== localCampaignData.userUid;
+      }).length
+      : 0,
+    imageUrl: localCampaignData?.imageUrl
+      ? { uri: localCampaignData.imageUrl }
       : require('../../../assets/default-campaign-img.png'),
+    ownerName: localCampaignData?.ownerName || localCampaignData?.masterName || 'Mestre não encontrado',
   };
 
   const handleSave = (updatedData) => {
@@ -156,6 +193,41 @@ const GeneralTab = ({ campaignData, campaignUid, onDataUpdate }) => {
     if (onDataUpdate) {
       onDataUpdate(updatedData);
     }
+  };
+
+  const handleDeleteCampaign = () => {
+    Alert.alert(
+      'Excluir campanha',
+      'Tem certeza que deseja excluir esta campanha? Todas as fichas também serão apagadas.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await fetchSecure(
+                `https://rollplayapi-fbb4e7a9hqa3ehds.eastus-01.azurewebsites.net/campaigns/${campaignUid}`,
+                { method: 'DELETE' }
+              );
+
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Erro ao excluir campanha.');
+              }
+
+              Alert.alert('Sucesso', 'Campanha excluída com sucesso.');
+
+              if (onCampaignDeleted) {
+                onCampaignDeleted();
+              }
+            } catch (err) {
+              Alert.alert('Erro', err.message || 'Não foi possível excluir a campanha.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -167,12 +239,12 @@ const GeneralTab = ({ campaignData, campaignUid, onDataUpdate }) => {
 
       {/* Profile Image */}
       <View style={styles.profileSection}>
-        <View style={styles.profileImageContainer}>
+        <View style={styles.imageUrlContainer}>
           <Image
-            source={campaign.profileImage}
-            style={styles.profileImage}
+            source={campaign.imageUrl}
+            style={styles.imageUrl}
           />
-          <View style={styles.profileImageBorder} />
+          <View style={styles.imageUrlBorder} />
         </View>
       </View>
 
@@ -186,12 +258,14 @@ const GeneralTab = ({ campaignData, campaignUid, onDataUpdate }) => {
               <Text style={styles.systemText}>🎲 {campaign.system}</Text>
             </View>
           </View>
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={() => setEditModalVisible(true)}
-          >
-            <Text style={styles.editButtonIcon}>✏️</Text>
-          </TouchableOpacity>
+          {isMaster && (
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => setEditModalVisible(true)}
+            >
+              <Text style={styles.editButtonIcon}>✏️</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Stats Grid */}
@@ -218,6 +292,17 @@ const GeneralTab = ({ campaignData, campaignUid, onDataUpdate }) => {
             <Text style={styles.infoCardValue}>{campaign.createdAt}</Text>
           </View>
 
+          {/* Owner Card */}
+          <View style={styles.infoCard}>
+            <View style={styles.infoCardHeader}>
+              <View style={styles.infoCardIconContainer}>
+                <Text style={styles.infoCardIcon}>👑</Text>
+              </View>
+              <Text style={styles.infoCardTitle}>Mestre</Text>
+            </View>
+            <Text style={styles.infoCardValue}>{campaign.ownerName}</Text>
+          </View>
+
           {/* Description Card */}
           <View style={[styles.infoCard, styles.descriptionCard]}>
             <View style={styles.infoCardHeader}>
@@ -230,6 +315,15 @@ const GeneralTab = ({ campaignData, campaignUid, onDataUpdate }) => {
           </View>
         </View>
       </View>
+
+      {isMaster && (
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={handleDeleteCampaign}
+        >
+          <Text style={styles.deleteButtonText}>Excluir Campanha</Text>
+        </TouchableOpacity>
+      )}
 
       <EditCampaignModal
         visible={editModalVisible}
@@ -255,10 +349,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     zIndex: 10,
   },
-  profileImageContainer: {
+  imageUrlContainer: {
     position: 'relative',
   },
-  profileImage: {
+  imageUrl: {
     width: 140,
     height: 140,
     borderRadius: 18,
@@ -266,7 +360,7 @@ const styles = StyleSheet.create({
     borderColor: '#0a0e27',
     resizeMode: 'cover',
   },
-  profileImageBorder: {
+  imageUrlBorder: {
     position: 'absolute',
     width: 140,
     height: 140,
@@ -325,6 +419,21 @@ const styles = StyleSheet.create({
   },
   editButtonIcon: {
     fontSize: 20,
+  },
+  deleteButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: '#ef4444',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+
+  deleteButtonText: {
+    color: '#ef4444',
+    fontSize: 16,
+    fontWeight: '800',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -467,6 +576,35 @@ const modalStyles = StyleSheet.create({
     fontSize: 15,
     color: '#ffffff',
     fontWeight: '500',
+  },
+  selectContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+
+  selectOption: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#2d3653',
+    backgroundColor: '#0a0e27',
+    alignItems: 'center',
+  },
+
+  selectOptionActive: {
+    backgroundColor: '#3b9dff',
+    borderColor: '#3b9dff',
+  },
+
+  selectOptionText: {
+    color: '#9ca3af',
+    fontWeight: '600',
+  },
+
+  selectOptionTextActive: {
+    color: '#ffffff',
   },
   textArea: {
     minHeight: 100,
